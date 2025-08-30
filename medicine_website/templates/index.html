@@ -18,11 +18,28 @@
         .med-list li { background-color: #ecf0f1; padding: 10px; border-radius: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; }
         .med-list span { font-weight: 500; }
         .no-meds { color: #7f8c8d; }
+        /* Styles for Flashed Messages (Alerts) */
+        .alerts { list-style: none; padding: 0; margin-bottom: 1.5rem; }
+        .alert { padding: 15px; margin-bottom: 10px; border-radius: 4px; position: relative; }
+        .alert-success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .alert-info { color: #0c5460; background-color: #d1ecf1; border: 1px solid #bee5eb; }
+        .alert-warning { color: #856404; background-color: #fff3cd; border: 1px solid #ffeeba; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Medicine Log</h1>
+        <h1>Medicine Log & Interaction Checker</h1>
+
+        <!-- Section for Displaying Flashed Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <ul class=alerts>
+            {% for category, message in messages %}
+              <li class="alert alert-{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
 
         <!-- Section to Add New Patient -->
         <div class="card">
@@ -32,7 +49,7 @@
                     <input type="text" name="name" placeholder="Patient Name" required>
                     <input type="number" name="age" placeholder="Age">
                     <input type="text" name="conditions" placeholder="Known Conditions (e.g., Diabetes)">
-                    <input type="text" name="allergies" placeholder="Allergies (e.g., Penicillin)">
+                    <input type="text" name="allergies" placeholder="Allergies (e.g., Penicillin, Ibuprofen)">
                 </div>
                 <br>
                 <button type="submit">Add Patient</button>
@@ -55,7 +72,7 @@
                     <input type="text" name="dosage" placeholder="Dosage (e.g., 500mg Once Daily)">
                 </div>
                 <br>
-                <button type="submit">Add Medication</button>
+                <button type="submit">Add Medication & Check Interactions</button>
             </form>
         </div>
 
@@ -84,30 +101,4 @@
     </div>
 </body>
 </html>
-```
 
----
-
-### **How to Run Your Website**
-
-1.  **Create the Folder Structure:**
-    * Create a main folder (e.g., `medicine_website`).
-    * Inside it, save `database_setup.py` and `app.py`.
-    * Also inside it, create a new folder called `templates`.
-    * Inside the `templates` folder, save `index.html`.
-
-2.  **Install Flask:** Open your terminal or command prompt and run:
-    ```bash
-    pip install Flask
-    ```
-
-3.  **Set Up the Database:** In your terminal, navigate to your main folder and run the setup script **once**:
-    ```bash
-    python database_setup.py
-    ```
-    You will see a new file called `medicine_log.db` appear.
-
-4.  **Run the Web App:** Now, run the main application:
-    ```bash
-    python app.py
-    
