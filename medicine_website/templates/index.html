@@ -18,12 +18,14 @@
         .med-list li { background-color: #ecf0f1; padding: 10px; border-radius: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; }
         .med-list span { font-weight: 500; }
         .no-meds { color: #7f8c8d; }
-        /* Styles for Flashed Messages (Alerts) */
         .alerts { list-style: none; padding: 0; margin-bottom: 1.5rem; }
         .alert { padding: 15px; margin-bottom: 10px; border-radius: 4px; position: relative; }
         .alert-success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; }
         .alert-info { color: #0c5460; background-color: #d1ecf1; border: 1px solid #bee5eb; }
         .alert-warning { color: #856404; background-color: #fff3cd; border: 1px solid #ffeeba; }
+        /* New Chatbot Styles */
+        .chatbot-response { margin-top: 1.5rem; padding: 1rem; background-color: #eaf5ff; border-left: 5px solid #3498db; border-radius: 4px; }
+        .chatbot-response p { margin: 0; color: #2c3e50; }
     </style>
 </head>
 <body>
@@ -40,6 +42,30 @@
             </ul>
           {% endif %}
         {% endwith %}
+
+        <!-- NEW: Chatbot Assistant Section -->
+        <div class="card">
+            <h2>Ask the Chatbot Assistant</h2>
+            <form action="/ask_chatbot" method="post">
+                 <div class="form-grid">
+                    <select name="patient_id" required>
+                        <option value="" disabled selected>-- Select a Patient for Context --</option>
+                        {% for patient in patients %}
+                        <option value="{{ patient.id }}" {% if selected_patient_id == patient.id %}selected{% endif %}>{{ patient.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" name="question" placeholder="e.g., Can I take Ibuprofen?" required>
+                </div>
+                <br>
+                <button type="submit">Ask</button>
+            </form>
+            <!-- Area to display the chatbot's response -->
+            {% if chatbot_response %}
+            <div class="chatbot-response">
+                <p><strong>Assistant:</strong> {{ chatbot_response }}</p>
+            </div>
+            {% endif %}
+        </div>
 
         <!-- Section to Add New Patient -->
         <div class="card">
@@ -63,7 +89,6 @@
                 <div class="form-grid">
                     <select name="patient_id" required>
                         <option value="" disabled selected>-- Select a Patient --</option>
-                        <!-- This loop populates the dropdown with patients from the database -->
                         {% for patient in patients %}
                         <option value="{{ patient.id }}">{{ patient.name }}</option>
                         {% endfor %}
