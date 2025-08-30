@@ -3,7 +3,6 @@ import sqlite3
 import requests
 
 app = Flask(__name__)
-# A secret key is required for session management (our simple login)
 app.secret_key = 'super_secret_key_for_a_great_project' 
 
 # --- Helper Functions ---
@@ -99,7 +98,7 @@ def login():
             return redirect(url_for('profile'))
     return render_template('index.html', page='login')
 
-@app.route('/dashboard')
+@app.route('/dashboard', methods=['GET'])
 def dashboard():
     """The main view for a logged-in patient."""
     if 'patient_id' not in session: return redirect(url_for('login'))
@@ -118,7 +117,6 @@ def profile():
     
     conn = get_db_connection()
     if request.method == 'POST':
-        # Update profile details
         conn.execute('''
             UPDATE patients SET age = ?, gender = ?, weight_kg = ?, conditions = ?, allergies = ?
             WHERE id = ?
@@ -145,7 +143,6 @@ def add_medication():
     conn = get_db_connection()
     patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
     
-    # Perform all checks
     all_warnings = get_personalized_warnings(new_drug, patient)
     
     existing_meds = conn.execute('SELECT drug_name FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
@@ -154,13 +151,11 @@ def add_medication():
         if interaction:
             all_warnings.append(interaction)
     
-    # Add medication to DB
     conn.execute('INSERT INTO medications (patient_id, drug_name, dosage) VALUES (?, ?, ?)',
                  (session['patient_id'], new_drug, dosage))
     conn.commit()
     conn.close()
     
-    # Provide feedback to the user
     flash(f"'{new_drug.title()}' has been added to your log.", "success")
     if all_warnings:
         for warning in all_warnings:
@@ -170,12 +165,12 @@ def add_medication():
         
     return redirect(url_for('dashboard'))
 
-@app.route('/logout')
+@app.route('/logout', methods=['GET'])
 def logout():
+    """Logs the user out by clearing the session."""
     session.pop('patient_id', None)
     flash("You have been logged out.", "info")
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True)
-
