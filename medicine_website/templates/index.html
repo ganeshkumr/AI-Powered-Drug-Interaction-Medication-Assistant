@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medicine Log</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 2rem; }
+        .container { max-width: 900px; margin: auto; }
+        h1, h2 { color: #2c3e50; }
+        .card { background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 2rem; padding: 1.5rem; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
+        button:hover { background-color: #2980b9; }
+        .patient-header { border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 1rem; }
+        .med-list { list-style-type: none; padding-left: 0; }
+        .med-list li { background-color: #ecf0f1; padding: 10px; border-radius: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .med-list span { font-weight: 500; }
+        .no-meds { color: #7f8c8d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Medicine Log</h1>
+
+        <!-- Section to Add New Patient -->
+        <div class="card">
+            <h2>Add a New Patient</h2>
+            <form action="/add_patient" method="post">
+                <div class="form-grid">
+                    <input type="text" name="name" placeholder="Patient Name" required>
+                    <input type="number" name="age" placeholder="Age">
+                    <input type="text" name="conditions" placeholder="Known Conditions (e.g., Diabetes)">
+                    <input type="text" name="allergies" placeholder="Allergies (e.g., Penicillin)">
+                </div>
+                <br>
+                <button type="submit">Add Patient</button>
+            </form>
+        </div>
+
+        <!-- Section to Add Medication for an Existing Patient -->
+        <div class="card">
+            <h2>Add Medication to a Patient</h2>
+            <form action="/add_medication" method="post">
+                <div class="form-grid">
+                    <select name="patient_id" required>
+                        <option value="" disabled selected>-- Select a Patient --</option>
+                        <!-- This loop populates the dropdown with patients from the database -->
+                        {% for patient in patients %}
+                        <option value="{{ patient.id }}">{{ patient.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" name="drug_name" placeholder="Drug Name (e.g., Metformin)" required>
+                    <input type="text" name="dosage" placeholder="Dosage (e.g., 500mg Once Daily)">
+                </div>
+                <br>
+                <button type="submit">Add Medication</button>
+            </form>
+        </div>
+
+        <!-- Section to Display All Patients and their Medications -->
+        <h2>Current Patient Records</h2>
+        {% for patient in patients %}
+        <div class="card">
+            <div class="patient-header">
+                <h3>{{ patient.name }}</h3>
+                <p>Age: {{ patient.age or 'N/A' }} | Conditions: {{ patient.conditions or 'None' }} | Allergies: {{ patient.allergies or 'None' }}</p>
+            </div>
+            <h4>Medication List:</h4>
+            {% if patient.medications %}
+            <ul class="med-list">
+                {% for med in patient.medications %}
+                <li><span>{{ med.drug_name }}</span> {{ med.dosage }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="no-meds">No medications have been added for this patient.</p>
+            {% endif %}
+        </div>
+        {% else %}
+        <p>No patients have been added yet. Use the form above to add one.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>
+```
+
+---
+
+### **How to Run Your Website**
+
+1.  **Create the Folder Structure:**
+    * Create a main folder (e.g., `medicine_website`).
+    * Inside it, save `database_setup.py` and `app.py`.
+    * Also inside it, create a new folder called `templates`.
+    * Inside the `templates` folder, save `index.html`.
+
+2.  **Install Flask:** Open your terminal or command prompt and run:
+    ```bash
+    pip install Flask
+    ```
+
+3.  **Set Up the Database:** In your terminal, navigate to your main folder and run the setup script **once**:
+    ```bash
+    python database_setup.py
+    ```
+    You will see a new file called `medicine_log.db` appear.
+
+4.  **Run the Web App:** Now, run the main application:
+    ```bash
+    python app.py
+    
