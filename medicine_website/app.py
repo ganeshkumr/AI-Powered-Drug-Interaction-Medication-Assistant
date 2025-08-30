@@ -1,19 +1,21 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 import sqlite3
 import requests
-import re # Import the regular expressions library for text parsing
 
 app = Flask(__name__)
-app.secret_key = 'your_very_secret_key' 
+# A secret key is required for session management (our simple login)
+app.secret_key = 'super_secret_key_for_a_great_project' 
 
-# --- Helper & API Functions (largely unchanged) ---
-
+# --- Helper Functions ---
 def get_db_connection():
+    """Establishes a connection to the SQLite database."""
     conn = sqlite3.connect('medicine_log.db')
     conn.row_factory = sqlite3.Row
     return conn
 
+# --- API & Safety Check Logic ---
 def get_rxcui(drug_name):
+    """Gets the RxCUI identifier for a drug from the NIH API."""
     base_url = "https://rxnav.nlm.nih.gov/REST/rxcui.json"
     params = {"name": drug_name.strip(), "search": 1}
     try:
@@ -24,9 +26,9 @@ def get_rxcui(drug_name):
     except (requests.exceptions.RequestException, KeyError, IndexError):
         return None
 
-def get_interaction_from_api(drug1_name, drug2_name):
-    rxcui1 = get_rxcui(drug1_name)
-    rxcui2 = get_rxcui(drug2_name)
+def get_interaction(drug1_name, drug2_name):
+    """Checks for interactions between two drugs."""
+    rxcui1 = get_rxcui(drug1_name); rxcui2 = get_rxcui(drug2_name)
     if not rxcui1 or not rxcui2: return None
     
     rxcuis_string = f"{rxcui1}+{rxcui2}"
@@ -36,146 +38,143 @@ def get_interaction_from_api(drug1_name, drug2_name):
         response = requests.get(base_url, params=params)
         response.raise_for_status()
         data = response.json()
-        interaction_groups = data.get('fullInteractionTypeGroup')
-        if not interaction_groups or not interaction_groups[0].get('fullInteractionType'):
-            return None
-        first_interaction = interaction_groups[0]['fullInteractionType'][0]['interactionPair'][0]
-        severity = first_interaction.get('severity', 'Unknown')
-        description = first_interaction.get('description', 'No description available.')
+        group = data.get('fullInteractionTypeGroup')
+        if not group or not group[0].get('fullInteractionType'): return None
+        
+        interaction = group[0]['fullInteractionType'][0]['interactionPair'][0]
+        severity = interaction.get('severity', 'Unknown')
+        description = interaction.get('description', 'N/A')
+        
         if severity.lower() not in ['safe', 'unknown']:
-            risk_level = "High Risk" if severity.lower() in ['high', 'n/a'] else "Moderate Risk"
-            return f"Interaction between {drug1_name.title()} and {drug2_name.title()} ({risk_level}): {description}"
+            risk = "High Risk" if severity.lower() in ['high', 'n/a'] else "Moderate Risk"
+            return f"💊 Drug-Drug Interaction ({risk}): {description}"
         return None
     except (requests.exceptions.RequestException, KeyError, IndexError):
         return None
 
-def check_contraindications(new_drug, patient_conditions, patient_allergies):
+def get_personalized_warnings(new_drug, patient):
+    """Generates warnings based on the patient's specific profile."""
     warnings = []
-    new_drug_lower = new_drug.lower()
-    if patient_allergies and new_drug_lower in patient_allergies.lower():
-        warnings.append(f"Allergy Alert: The patient has a known allergy to {new_drug.title()}.")
-    contraindication_rules = {'diabetes': ['ibuprofen', 'prednisone'], 'kidney disease': ['ibuprofen', 'naproxen', 'nsaids'], 'high blood pressure': ['ibuprofen', 'pseudoephedrine']}
-    if patient_conditions:
-        for condition, risky_drugs in contraindication_rules.items():
-            if condition in patient_conditions.lower() and new_drug_lower in risky_drugs:
-                warnings.append(f"Condition Alert ({condition.title()}): {new_drug.title()} may not be suitable. Consult a doctor.")
+    drug_lower = new_drug.lower()
+    conditions = patient['conditions'].lower() if patient['conditions'] else ""
+    allergies = patient['allergies'].lower() if patient['allergies'] else ""
+
+    # 1. Allergy Check
+    if allergies and any(allergy.strip() in drug_lower for allergy in allergies.split(',')):
+        warnings.append(f"🚨 Allergy Alert: Profile indicates an allergy to '{new_drug}'. Do not take this medication.")
+
+    # 2. Drug-Condition Check (Contraindications)
+    rules = {
+        'ibuprofen': ['diabetes', 'kidney disease', 'high blood pressure'],
+        'metformin': ['kidney disease'],
+        'aspirin': ['stomach ulcers', 'bleeding disorder']
+    }
+    if drug_lower in rules:
+        for condition in rules[drug_lower]:
+            if condition in conditions:
+                warnings.append(f"⚠️ Drug-Condition Alert: Taking '{new_drug.title()}' with a history of '{condition.title()}' can be risky. Consult your doctor.")
+    
     return warnings
 
-# --- NEW: Chatbot Query Processing Logic ---
-def process_chatbot_query(question, patient_id):
-    """Determines the user's intent and gets the answer."""
-    question_lower = question.lower()
-    conn = get_db_connection()
-    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (patient_id,)).fetchone()
-    if not patient:
-        return "Please select a valid patient before asking a question."
-
-    # Intent 1: List current medications or dosage
-    if "what are my" in question_lower or "list my med" in question_lower or "next dose" in question_lower:
-        meds = conn.execute('SELECT drug_name, dosage FROM medications WHERE patient_id = ?', (patient_id,)).fetchall()
-        if not meds:
-            return f"{patient['name']} currently has no medications logged."
-        response = f"Here is the current medication list for {patient['name']}: "
-        response += ", ".join([f"{med['drug_name']} ({med['dosage'] or 'dosage not specified'})" for med in meds]) + "."
-        if "next dose" in question_lower:
-            response += " I can provide the dosage, but I do not have a schedule for when to take them. Please follow your doctor's instructions."
-        return response
-
-    # Intent 2: Patient-specific "Can I take [drug]?"
-    match = re.search(r'can i take (.+)\?*$', question_lower)
-    if match:
-        new_drug = match.group(1).strip()
-        existing_meds_rows = conn.execute('SELECT drug_name FROM medications WHERE patient_id = ?', (patient_id,)).fetchall()
-        existing_meds = [med['drug_name'] for med in existing_meds_rows]
+# --- USER & PROFILE MANAGEMENT ---
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    """Handles user login and registration."""
+    session.pop('patient_id', None) # Clear any previous session
+    if request.method == 'POST':
+        patient_name = request.form['name'].strip()
+        conn = get_db_connection()
+        patient = conn.execute('SELECT * FROM patients WHERE name = ?', (patient_name,)).fetchone()
         
-        all_warnings = check_contraindications(new_drug, patient['conditions'], patient['allergies'])
-        for med in existing_meds:
-            interaction = get_interaction_from_api(new_drug, med)
-            if interaction:
-                all_warnings.append(interaction)
+        if patient:
+            session['patient_id'] = patient['id']
+            return redirect(url_for('dashboard'))
+        else: # If patient doesn't exist, create them
+            cursor = conn.cursor()
+            cursor.execute('INSERT INTO patients (name) VALUES (?)', (patient_name,))
+            conn.commit()
+            new_patient = conn.execute('SELECT * FROM patients WHERE name = ?', (patient_name,)).fetchone()
+            session['patient_id'] = new_patient['id']
+            flash("Welcome! Let's set up your health profile.", "info")
+            return redirect(url_for('profile'))
+    return render_template('index.html', page='login')
+
+@app.route('/dashboard')
+def dashboard():
+    """The main view for a logged-in patient."""
+    if 'patient_id' not in session: return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+    medications = conn.execute('SELECT * FROM medications WHERE patient_id = ? ORDER BY drug_name', (session['patient_id'],)).fetchall()
+    conn.close()
+    
+    return render_template('index.html', page='dashboard', patient=patient, medications=medications)
+
+@app.route('/profile', methods=['GET', 'POST'])
+def profile():
+    """Handles creating and updating a patient's health profile."""
+    if 'patient_id' not in session: return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    if request.method == 'POST':
+        # Update profile details
+        conn.execute('''
+            UPDATE patients SET age = ?, gender = ?, weight_kg = ?, conditions = ?, allergies = ?
+            WHERE id = ?
+        ''', (request.form['age'], request.form['gender'], request.form['weight_kg'], 
+              request.form['conditions'], request.form['allergies'], session['patient_id']))
+        conn.commit()
+        conn.close()
+        flash("Profile updated successfully!", "success")
+        return redirect(url_for('dashboard'))
         
-        if not all_warnings:
-            return f"Based on the available data, no significant interactions or contraindications were found for {new_drug.title()} for {patient['name']}. However, always consult a doctor."
-        return "Based on my analysis for " + patient['name'] + ": " + " | ".join(all_warnings)
-
-    # Intent 3: General "What about [drug] and [drug]?"
-    match = re.search(r'(what about|interaction between) (.+) and (.+)\?*$', question_lower)
-    if match:
-        drug1 = match.group(2).strip()
-        drug2 = match.group(3).strip()
-        interaction = get_interaction_from_api(drug1, drug2)
-        return interaction or f"No significant interaction found between {drug1.title()} and {drug2.title()} in the database."
-
+    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
     conn.close()
-    return "I'm sorry, I can only answer questions like 'What are my medications?', 'Can I take [drug]?', or 'What about [drug] and [drug]?'"
+    return render_template('index.html', page='profile', patient=patient)
 
-# --- Flask Routes ---
-@app.route('/')
-def index():
-    """Renders the main page."""
-    conn = get_db_connection()
-    patients_data = conn.execute('SELECT * FROM patients ORDER BY name').fetchall()
-    patients = []
-    for p_data in patients_data:
-        patient = dict(p_data)
-        medications = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (patient['id'],)).fetchall()
-        patient['medications'] = medications
-        patients.append(patient)
-    conn.close()
-    return render_template('index.html', patients=patients)
-
-@app.route('/add_patient', methods=['POST'])
-def add_patient():
-    name = request.form['name']; age = request.form['age']; conditions = request.form['conditions']; allergies = request.form['allergies']
-    conn = get_db_connection()
-    conn.execute('INSERT INTO patients (name, age, conditions, allergies) VALUES (?, ?, ?, ?)', (name, age, conditions, allergies))
-    conn.commit()
-    conn.close()
-    flash(f"Patient '{name}' added successfully!", "success")
-    return redirect(url_for('index'))
-
+# --- MEDICATION MANAGEMENT ---
 @app.route('/add_medication', methods=['POST'])
 def add_medication():
-    patient_id = request.form['patient_id']; new_drug = request.form['drug_name']; dosage = request.form['dosage']
+    """Adds a new medication and performs all safety checks."""
+    if 'patient_id' not in session: return redirect(url_for('login'))
+    
+    new_drug = request.form['drug_name']
+    dosage = request.form['dosage']
+    
     conn = get_db_connection()
-    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (patient_id,)).fetchone()
-    existing_meds_rows = conn.execute('SELECT drug_name FROM medications WHERE patient_id = ?', (patient_id,)).fetchall()
-    existing_meds = [med['drug_name'] for med in existing_meds_rows]
-    all_warnings = check_contraindications(new_drug, patient['conditions'], patient['allergies'])
-    for existing_drug in existing_meds:
-        interaction_result = get_interaction_from_api(new_drug, existing_drug)
-        if interaction_result:
-            all_warnings.append(f"💊 {interaction_result}")
-    conn.execute('INSERT INTO medications (patient_id, drug_name, dosage) VALUES (?, ?, ?)', (patient_id, new_drug, dosage))
+    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+    
+    # Perform all checks
+    all_warnings = get_personalized_warnings(new_drug, patient)
+    
+    existing_meds = conn.execute('SELECT drug_name FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
+    for med in existing_meds:
+        interaction = get_interaction(new_drug, med['drug_name'])
+        if interaction:
+            all_warnings.append(interaction)
+    
+    # Add medication to DB
+    conn.execute('INSERT INTO medications (patient_id, drug_name, dosage) VALUES (?, ?, ?)',
+                 (session['patient_id'], new_drug, dosage))
     conn.commit()
     conn.close()
-    flash(f"Medication '{new_drug.title()}' added for {patient['name']}.", "success")
+    
+    # Provide feedback to the user
+    flash(f"'{new_drug.title()}' has been added to your log.", "success")
     if all_warnings:
-        for warning in all_warnings: flash(warning, "warning")
+        for warning in all_warnings:
+            flash(warning, "warning")
     else:
-        flash("✅ No significant interactions or contraindications found.", "info")
-    return redirect(url_for('index'))
+        flash("✅ No personalized conflicts or major interactions were found.", "info")
+        
+    return redirect(url_for('dashboard'))
 
-@app.route('/ask_chatbot', methods=['POST'])
-def ask_chatbot():
-    """Handles chatbot queries and re-renders the page with the answer."""
-    question = request.form.get('question')
-    patient_id = request.form.get('patient_id')
-    
-    chatbot_response = process_chatbot_query(question, patient_id)
-    
-    # We need to fetch all patient data again to re-render the full page
-    conn = get_db_connection()
-    patients_data = conn.execute('SELECT * FROM patients ORDER BY name').fetchall()
-    patients = []
-    for p_data in patients_data:
-        patient = dict(p_data)
-        medications = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (patient['id'],)).fetchall()
-        patient['medications'] = medications
-        patients.append(patient)
-    conn.close()
-    
-    return render_template('index.html', patients=patients, chatbot_response=chatbot_response, selected_patient_id=int(patient_id))
+@app.route('/logout')
+def logout():
+    session.pop('patient_id', None)
+    flash("You have been logged out.", "info")
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True)

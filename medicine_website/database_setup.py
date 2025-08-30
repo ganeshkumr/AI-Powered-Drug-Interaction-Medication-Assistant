@@ -4,25 +4,32 @@ import sqlite3
 conn = sqlite3.connect('medicine_log.db')
 cursor = conn.cursor()
 
-print("Database connected. Creating tables...")
+print("Database connected. Creating/updating tables...")
 
-# Create the 'patients' table
-# id is the primary key, which uniquely identifies each patient.
+# Drop existing tables to ensure a clean slate with the new structure
+cursor.execute('DROP TABLE IF EXISTS medications;')
+cursor.execute('DROP TABLE IF EXISTS patients;')
+print("Old tables dropped.")
+
+# Create the new 'patients' table with a more detailed profile
+# We are adding name, age, gender, weight, conditions, and allergies.
 cursor.execute('''
-CREATE TABLE IF NOT EXISTS patients (
+CREATE TABLE patients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
+    name TEXT NOT NULL UNIQUE, -- Name will also be our simple login username
     age INTEGER,
+    gender TEXT,
+    weight_kg REAL,
     conditions TEXT,
     allergies TEXT
 );
 ''')
-print("Table 'patients' created or already exists.")
+print("Table 'patients' created with new schema.")
 
 # Create the 'medications' table
 # 'patient_id' is a foreign key that links this table to the 'patients' table.
 cursor.execute('''
-CREATE TABLE IF NOT EXISTS medications (
+CREATE TABLE medications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     patient_id INTEGER NOT NULL,
     drug_name TEXT NOT NULL,
@@ -30,10 +37,12 @@ CREATE TABLE IF NOT EXISTS medications (
     FOREIGN KEY (patient_id) REFERENCES patients (id)
 );
 ''')
-print("Table 'medications' created or already exists.")
+print("Table 'medications' created.")
 
 # Commit the changes and close the connection
 conn.commit()
 conn.close()
 
-print("Database setup complete. The 'medicine_log.db' file is ready.")
+print("\nDatabase setup complete. The 'medicine_log.db' file is ready.")
+print("You only need to run this script once.")
+

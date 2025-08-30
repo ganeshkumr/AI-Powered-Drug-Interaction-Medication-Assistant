@@ -3,127 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medicine Log</title>
+    <title>Personalized Medicine Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 2rem; }
-        .container { max-width: 900px; margin: auto; }
-        h1, h2 { color: #2c3e50; }
-        .card { background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 2rem; padding: 1.5rem; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { background-color: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
-        button:hover { background-color: #2980b9; }
-        .patient-header { border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 1rem; }
-        .med-list { list-style-type: none; padding-left: 0; }
-        .med-list li { background-color: #ecf0f1; padding: 10px; border-radius: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; }
-        .med-list span { font-weight: 500; }
-        .no-meds { color: #7f8c8d; }
-        .alerts { list-style: none; padding: 0; margin-bottom: 1.5rem; }
-        .alert { padding: 15px; margin-bottom: 10px; border-radius: 4px; position: relative; }
-        .alert-success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; }
-        .alert-info { color: #0c5460; background-color: #d1ecf1; border: 1px solid #bee5eb; }
-        .alert-warning { color: #856404; background-color: #fff3cd; border: 1px solid #ffeeba; }
-        /* New Chatbot Styles */
-        .chatbot-response { margin-top: 1.5rem; padding: 1rem; background-color: #eaf5ff; border-left: 5px solid #3498db; border-radius: 4px; }
-        .chatbot-response p { margin: 0; color: #2c3e50; }
+        /* A little extra style for a polished look */
+        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Medicine Log & Interaction Checker</h1>
+<body class="bg-slate-50 text-slate-800">
 
-        <!-- Section for Displaying Flashed Messages -->
+    <div class="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
+
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold text-slate-700">Medicine Assistant</h1>
+            {% if page != 'login' %}
+            <a href="/logout" class="text-sm font-medium text-blue-600 hover:text-blue-800">Logout</a>
+            {% endif %}
+        </header>
+
+        <!-- Flash Messages / Alerts -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <ul class=alerts>
+            <div class="mb-6 space-y-3">
             {% for category, message in messages %}
-              <li class="alert alert-{{ category }}">{{ message }}</li>
+              {% set colors = {
+                'success': 'bg-green-100 border-green-400 text-green-700',
+                'warning': 'bg-yellow-100 border-yellow-400 text-yellow-700',
+                'info': 'bg-blue-100 border-blue-400 text-blue-700'
+              } %}
+              <div class="p-4 border-l-4 rounded {{ colors.get(category, 'bg-gray-100 border-gray-400 text-gray-700') }}" role="alert">
+                <p class="font-bold">
+                    {% if category == 'success' %}Success{% elif category == 'warning' %}Alert{% else %}Notice{% endif %}
+                </p>
+                <p>{{ message }}</p>
+              </div>
             {% endfor %}
-            </ul>
+            </div>
           {% endif %}
         {% endwith %}
 
-        <!-- NEW: Chatbot Assistant Section -->
-        <div class="card">
-            <h2>Ask the Chatbot Assistant</h2>
-            <form action="/ask_chatbot" method="post">
-                 <div class="form-grid">
-                    <select name="patient_id" required>
-                        <option value="" disabled selected>-- Select a Patient for Context --</option>
-                        {% for patient in patients %}
-                        <option value="{{ patient.id }}" {% if selected_patient_id == patient.id %}selected{% endif %}>{{ patient.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <input type="text" name="question" placeholder="e.g., Can I take Ibuprofen?" required>
+        <!-- DYNAMIC CONTENT AREA -->
+        
+        <!-- LOGIN PAGE -->
+        {% if page == 'login' %}
+        <div class="bg-white p-8 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold mb-4 text-center">Login or Create Profile</h2>
+            <p class="text-center text-slate-500 mb-6">Enter your name to begin. If the profile doesn't exist, we'll create a new one for you.</p>
+            <form action="/" method="post" class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-slate-600">Patient Name</label>
+                    <input type="text" name="name" id="name" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Mr. Kumar" required>
                 </div>
-                <br>
-                <button type="submit">Ask</button>
+                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Login / Register
+                </button>
             </form>
-            <!-- Area to display the chatbot's response -->
-            {% if chatbot_response %}
-            <div class="chatbot-response">
-                <p><strong>Assistant:</strong> {{ chatbot_response }}</p>
+        </div>
+        {% endif %}
+
+        <!-- PROFILE PAGE -->
+        {% if page == 'profile' %}
+        <div class="bg-white p-8 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold mb-4">Set Up Your Health Profile</h2>
+            <p class="text-slate-500 mb-6">This information helps provide personalized alerts. You can update it anytime.</p>
+            <form action="/profile" method="post" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium">Age</label>
+                        <input type="number" name="age" value="{{ patient.age }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., 55">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Gender</label>
+                        <select name="gender" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md">
+                            <option value="" {% if not patient.gender %}selected{% endif %}>Select...</option>
+                            <option value="Male" {% if patient.gender == 'Male' %}selected{% endif %}>Male</option>
+                            <option value="Female" {% if patient.gender == 'Female' %}selected{% endif %}>Female</option>
+                            <option value="Other" {% if patient.gender == 'Other' %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Weight (in kg)</label>
+                    <input type="number" step="0.1" name="weight_kg" value="{{ patient.weight_kg }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., 70.5">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Medical Conditions</label>
+                    <input type="text" name="conditions" value="{{ patient.conditions }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Diabetes, High Blood Pressure (comma separated)">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Drug Allergies</label>
+                    <input type="text" name="allergies" value="{{ patient.allergies }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Penicillin, Ibuprofen (comma separated)">
+                </div>
+                <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">
+                    Save Profile
+                </button>
+            </form>
+        </div>
+        {% endif %}
+        
+        <!-- DASHBOARD PAGE -->
+        {% if page == 'dashboard' %}
+        <div class="space-y-8">
+            <!-- Patient Profile Summary -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="text-2xl font-semibold">{{ patient.name }}'s Dashboard</h2>
+                        <p class="text-slate-500">
+                            {{ patient.age or 'N/A' }} years old | {{ patient.gender or 'N/A' }} | {{ patient.weight_kg or 'N/A' }} kg
+                        </p>
+                        <p class="text-sm mt-2"><strong>Conditions:</strong> {{ patient.conditions or 'None specified' }}</p>
+                        <p class="text-sm"><strong>Allergies:</strong> {{ patient.allergies or 'None specified' }}</p>
+                    </div>
+                    <a href="/profile" class="text-sm font-medium text-blue-600 hover:text-blue-800">Edit Profile</a>
+                </div>
             </div>
-            {% endif %}
-        </div>
 
-        <!-- Section to Add New Patient -->
-        <div class="card">
-            <h2>Add a New Patient</h2>
-            <form action="/add_patient" method="post">
-                <div class="form-grid">
-                    <input type="text" name="name" placeholder="Patient Name" required>
-                    <input type="number" name="age" placeholder="Age">
-                    <input type="text" name="conditions" placeholder="Known Conditions (e.g., Diabetes)">
-                    <input type="text" name="allergies" placeholder="Allergies (e.g., Penicillin, Ibuprofen)">
-                </div>
-                <br>
-                <button type="submit">Add Patient</button>
-            </form>
-        </div>
-
-        <!-- Section to Add Medication for an Existing Patient -->
-        <div class="card">
-            <h2>Add Medication to a Patient</h2>
-            <form action="/add_medication" method="post">
-                <div class="form-grid">
-                    <select name="patient_id" required>
-                        <option value="" disabled selected>-- Select a Patient --</option>
-                        {% for patient in patients %}
-                        <option value="{{ patient.id }}">{{ patient.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <input type="text" name="drug_name" placeholder="Drug Name (e.g., Metformin)" required>
-                    <input type="text" name="dosage" placeholder="Dosage (e.g., 500mg Once Daily)">
-                </div>
-                <br>
-                <button type="submit">Add Medication & Check Interactions</button>
-            </form>
-        </div>
-
-        <!-- Section to Display All Patients and their Medications -->
-        <h2>Current Patient Records</h2>
-        {% for patient in patients %}
-        <div class="card">
-            <div class="patient-header">
-                <h3>{{ patient.name }}</h3>
-                <p>Age: {{ patient.age or 'N/A' }} | Conditions: {{ patient.conditions or 'None' }} | Allergies: {{ patient.allergies or 'None' }}</p>
+            <!-- Add Medication Form -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold mb-4">Add New Medication</h3>
+                <form action="/add_medication" method="post" class="flex items-end space-x-4">
+                    <div class="flex-grow">
+                        <label class="block text-sm font-medium">Drug Name</label>
+                        <input type="text" name="drug_name" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Metformin" required>
+                    </div>
+                    <div class="flex-grow">
+                        <label class="block text-sm font-medium">Dosage</label>
+                        <input type="text" name="dosage" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., 500mg daily">
+                    </div>
+                    <button type="submit" class="py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">
+                        Add & Check
+                    </button>
+                </form>
             </div>
-            <h4>Medication List:</h4>
-            {% if patient.medications %}
-            <ul class="med-list">
-                {% for med in patient.medications %}
-                <li><span>{{ med.drug_name }}</span> {{ med.dosage }}</li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="no-meds">No medications have been added for this patient.</p>
-            {% endif %}
+
+            <!-- Current Medication List -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold mb-4">Current Medication Log</h3>
+                {% if medications %}
+                <ul class="divide-y divide-slate-200">
+                    {% for med in medications %}
+                    <li class="py-3 flex justify-between items-center">
+                        <p class="font-medium">{{ med.drug_name }}</p>
+                        <p class="text-slate-500">{{ med.dosage }}</p>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-slate-500">No medications have been logged yet.</p>
+                {% endif %}
+            </div>
         </div>
-        {% else %}
-        <p>No patients have been added yet. Use the form above to add one.</p>
-        {% endfor %}
+        {% endif %}
+
     </div>
+
 </body>
 </html>
 
