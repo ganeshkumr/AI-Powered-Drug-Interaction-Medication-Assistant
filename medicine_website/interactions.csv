@@ -1,0 +1,215 @@
+drug_a,drug_b,severity,interaction,alternative
+Metformin,Ibuprofen,High,"Ibuprofen may affect kidney function in diabetes patients, increasing the risk of lactic acidosis with Metformin.",Paracetamol
+Warfarin,Aspirin,High,"Increases risk of bleeding significantly. This combination should be avoided unless specifically prescribed by a doctor.",Consult Doctor
+Lisinopril,Potassium Supplement,High,"Increases risk of hyperkalemia (dangerously high potassium levels), which can affect heart rhythm.",Consult Doctor
+Atorvastatin,Grapefruit Juice,Moderate,"Grapefruit juice can increase the level of Atorvastatin in your blood, raising the risk of side effects like muscle pain.",None
+Sertraline,Tramadol,High,"Increases risk of serotonin syndrome, a potentially life-threatening condition.",Consult Doctor
+SSRI,Alcohol,High,"Can significantly increase drowsiness, dizziness, and impair coordination. It can also worsen feelings of depression or anxiety.",Avoid Alcohol
+MAOI,Tyramine Foods,High,"Can cause a hypertensive crisis (dangerously high blood pressure). Avoid aged cheeses, cured meats, and soy products.",Consult Doctor
+Sildenafil,Nitrates,High,"Can cause a severe and sudden drop in blood pressure. This combination is extremely dangerous.",Never combine
+Digoxin,Amiodarone,High,"Amiodarone can increase digoxin levels, leading to toxicity. The digoxin dose must be reduced.",Consult Doctor
+Simvastatin,Amiodarone,Moderate,"Increases the risk of myopathy and rhabdomyolysis (serious muscle problems). The dose of Simvastatin should be limited.",Consult Doctor
+Ciprofloxacin,Tizanidine,High,"Ciprofloxacin can significantly increase the levels of Tizanidine, leading to low blood pressure and extreme drowsiness.",Consult Doctor
+Theophylline,Ciprofloxacin,High,"Ciprofloxacin can increase theophylline levels, risking toxicity. Monitoring or dose adjustment is required.",Consult Doctor
+Methotrexate,NSAIDs,High,"NSAIDs (like Ibuprofen, Naproxen) can reduce the clearance of methotrexate, leading to severe toxicity.",Consult Doctor
+ACE inhibitors,Spironolactone,Moderate,"Increases risk of hyperkalemia (high potassium). Potassium levels should be monitored closely.",Consult Doctor
+Benzodiazepines,Opioids,High,"Increases risk of profound sedation, respiratory depression, coma, and death. This combination should be avoided.",Consult Doctor
+Clopidogrel,Omeprazole,Moderate,"Omeprazole may reduce the antiplatelet effect of clopidogrel, increasing the risk of blood clots.",Pantoprazole
+Ibuprofen,Alcohol,Moderate,"Increases the risk of stomach upset, gastrointestinal bleeding, and ulcers. Should be used with caution.",Paracetamol
+Aspirin,Alcohol,Moderate,"Increases the risk of gastrointestinal bleeding. Use together cautiously and for a short duration.",Paracetamol
+Paracetamol,Alcohol,High,"Chronic heavy alcohol use with paracetamol increases the risk of severe liver damage, even at recommended doses.",Consult Doctor
+Fever,General Advice,Info,"For most fevers in adults, common over-the-counter options include Paracetamol or Ibuprofen. However, the best choice depends on your health conditions and other medications. Always read the label.",Consult Doctor
+Headache,General Advice,Info,"Simple painkillers like Paracetamol are often effective for tension headaches. Migraines may require different treatments. Staying hydrated and resting can also help.",Consult Doctor
+Tetracycline,Dairy Products,Moderate,"Dairy products (milk, cheese, yogurt) can bind to tetracycline antibiotics in the stomach, preventing their absorption and reducing their effectiveness.",Take antibiotic 1-2 hours before or after dairy.
+Levothyroxine,Calcium Carbonate,Moderate,"Calcium supplements can interfere with the absorption of levothyroxine, making it less effective. Separate doses by at least 4 hours.",Separate Doses
+Warfarin,Vitamin K Foods,High,"Foods high in Vitamin K (like spinach, kale, broccoli) can counteract the effect of Warfarin, increasing the risk of blood clots. Maintain a consistent intake.",Maintain Consistent Diet
+Statins,Niacin,Moderate,"High doses of Niacin combined with statins can increase the risk of muscle damage (myopathy).",Consult Doctor
+ACE inhibitors,ARBs,High,"Combining ACE inhibitors (like Lisinopril) and ARBs (like Losartan) increases the risk of kidney damage and high potassium without significant benefit.",Avoid Combination
+Beta-blockers,Insulin,Moderate,"Beta-blockers can mask the symptoms of low blood sugar (hypoglycemia), such as a rapid heartbeat, making it harder for diabetics to recognize.",Monitor blood sugar closely
+Codeine,Antihistamines,Moderate,"Combining codeine with sedating antihistamines (like Diphenhydramine) can cause excessive drowsiness and respiratory depression.",Non-sedating antihistamine (Loratadine)
+NSAIDs,Corticosteroids,Moderate,"Taking NSAIDs and corticosteroids (like Prednisone) together significantly increases the risk of stomach ulcers and bleeding.",Consult Doctor
+Quinolone Antibiotics,Antacids,Moderate,"Antacids containing aluminum or magnesium can bind to quinolone antibiotics (like Ciprofloxacin), reducing their absorption.",Separate doses by 2-4 hours
+SSRI,NSAIDs,Moderate,"SSRIs combined with NSAIDs can increase the risk of gastrointestinal bleeding.",Consult Doctor
+Metronidazole,Alcohol,High,"Causes a disulfiram-like reaction, leading to severe nausea, vomiting, flushing, and headache. Avoid alcohol during and for 3 days after treatment.",Avoid Alcohol
+Sulfonylureas,Alcohol,Moderate,"Alcohol can cause unpredictable effects on blood sugar levels and may cause flushing or nausea when taken with sulfonylurea diabetes drugs.",Limit Alcohol
+Warfarin,Ginkgo Biloba,High,"Ginkgo Biloba can increase the blood-thinning effect of Warfarin, raising the risk of serious bleeding.",Avoid Combination
+Digoxin,St. John's Wort,High,"St. John's Wort can reduce the levels of digoxin in the body, making it less effective and potentially dangerous for heart conditions.",Avoid Combination
+Oral Contraceptives,St. John's Wort,High,"St. John's Wort can accelerate the breakdown of oral contraceptives, reducing their effectiveness and increasing the risk of unplanned pregnancy.",Use alternative birth control
+Cyclosporine,St. John's Wort,High,"St. John's Wort can significantly decrease the levels of cyclosporine, increasing the risk of organ transplant rejection.",Avoid Combination
+Amitriptyline,MAOI,High,"This combination can lead to serotonin syndrome or hypertensive crisis. A 14-day washout period is required when switching between them.",Never combine
+Losartan,Lisinopril,High,"Combining an ARB (Losartan) and an ACE inhibitor (Lisinopril) offers no additional benefit and significantly increases the risk of kidney failure and high potassium.",Use one or the other, not both.
+Phenytoin,Folic Acid,Moderate,"Folic acid can decrease phenytoin levels, potentially leading to loss of seizure control. Phenytoin can also lower folic acid levels.",Monitor drug levels
+Valproic Acid,Aspirin,Moderate,"High-dose aspirin can increase the levels of valproic acid, raising the risk of side effects.",Consult Doctor
+Allopurinol,Azathioprine,High,"Allopurinol inhibits the metabolism of azathioprine, leading to severe toxicity and bone marrow suppression. The azathioprine dose must be drastically reduced.",Consult Doctor
+Lithium,Diuretics,High,"Thiazide diuretics can reduce the clearance of lithium, leading to lithium toxicity. Loop diuretics have a lower risk but still require monitoring.",Monitor lithium levels closely
+Lithium,NSAIDs,High,"NSAIDs can reduce lithium clearance, increasing the risk of toxicity. This is a very common and dangerous interaction.",Paracetamol is a safer alternative
+Spironolactone,Salt Substitutes,Moderate,"Many salt substitutes contain potassium chloride, which, when combined with potassium-sparing diuretics like spironolactone, can lead to hyperkalemia.",Avoid potassium-based salt substitutes
+Antihistamines,Sedatives,High,"Combining sedating antihistamines (e.g., Diphenhydramine) with sedatives (e.g., Zolpidem) can cause extreme drowsiness, impaired motor skills, and memory loss.",Avoid Combination
+Cough,General Advice,Info,"Cough suppressants (like Dextromethorphan) are for dry coughs. Expectorants (like Guaifenesin) are for wet, productive coughs. The right choice depends on the type of cough.",Consult Pharmacist
+Cold,General Advice,Info,"A common cold is a virus and cannot be cured by antibiotics. Treatment focuses on symptom relief using decongestants, pain relievers, and rest.",Rest and fluids
+Allergies,General Advice,Info,"Antihistamines are used to treat allergy symptoms. They come in sedating (e.g., Diphenhydramine) and non-sedating (e.g., Loratadine, Cetirizine) forms.",Non-sedating options for daytime
+Indigestion,General Advice,Info,"Antacids neutralize stomach acid for quick relief. H2 blockers (like Famotidine) and PPIs (like Omeprazole) reduce acid production for longer-lasting relief.",Consult Doctor for chronic symptoms
+Doxycycline,Iron Supplements,Moderate,"Iron supplements can bind to doxycycline and prevent its absorption. Doses should be separated by at least 2-3 hours.",Separate Doses
+Bisphosphonates,Calcium Supplements,High,"Calcium supplements, antacids, and food can dramatically reduce the absorption of bisphosphonates (for osteoporosis). Must be taken on an empty stomach with plain water.",Follow specific administration instructions
+Warfarin,Fluconazole,High,"Fluconazole can significantly increase the concentration of warfarin, leading to a very high risk of bleeding.",Alternative antifungal or adjust warfarin dose
+Phenytoin,Warfarin,Moderate,"Phenytoin can have unpredictable effects on warfarin metabolism, either increasing or decreasing its effect. Close monitoring of INR is required.",Monitor INR
+Carbamazepine,Erythromycin,High,"Erythromycin can inhibit the metabolism of carbamazepine, leading to toxicity (dizziness, ataxia).",Alternative antibiotic (e.g., Azithromycin)
+Statins,Fibrates,Moderate,"Combining statins (e.g., Atorvastatin) with fibrates (e.g., Gemfibrozil) increases the risk of severe muscle damage (rhabdomyolysis).",Consult Doctor, Fenofibrate is a safer option
+Sildenafil,Alpha-blockers,Moderate,"Alpha-blockers (for high blood pressure or prostate issues) can enhance the blood pressure-lowering effect of sildenafil, causing dizziness or fainting.",Start with the lowest dose
+Tricyclic Antidepressants,Clonidine,High,"Tricyclic antidepressants can oppose the blood pressure-lowering effect of clonidine, leading to a loss of blood pressure control.",Avoid Combination
+Digoxin,Verapamil,High,"Verapamil can significantly increase digoxin levels, increasing the risk of toxicity.",Diltiazem may be a safer alternative, requires monitoring
+Amiodarone,Warfarin,High,"Amiodarone inhibits warfarin metabolism, drastically increasing its effect and bleeding risk. Warfarin dose typically needs to be cut by 30-50%.",Frequent INR monitoring
+Levothyroxine,Iron Supplements,Moderate,"Iron can bind to levothyroxine in the gut, reducing its absorption. Doses must be separated by at least 4 hours.",Separate Doses
+Methotrexate,Proton Pump Inhibitors,Moderate,"High-dose methotrexate clearance can be delayed by PPIs (like Omeprazole), increasing toxicity risk.",Consider H2 blocker (Famotidine)
+Warfarin,Metronidazole,High,"Metronidazole inhibits warfarin metabolism, significantly increasing the risk of bleeding. INR must be monitored very closely.",Alternative antibiotic or dose adjustment
+Azithromycin,Antacids,Moderate,"Antacids with aluminum or magnesium can reduce the peak concentration of azithromycin. Separate doses by at least 2 hours.",Separate Doses
+Gabapentin,Antacids,Moderate,"Antacids can slightly reduce the bioavailability of gabapentin. It's recommended to take gabapentin at least 2 hours after an antacid.",Separate Doses
+Citalopram,Sumatriptan,High,"Combining SSRIs (like Citalopram) with triptans (like Sumatriptan) can increase the risk of serotonin syndrome.",Consult Doctor, use with caution
+Atenolol,Albuterol,Moderate,"Beta-blockers like Atenolol can block the therapeutic effects of beta-agonists like Albuterol, which can be dangerous in asthma patients.",Cardioselective beta-blocker with caution
+Prednisone,Live Vaccines,High,"Corticosteroids like prednisone suppress the immune system, and receiving a live vaccine can lead to a severe infection.",Avoid live vaccines while on high-dose steroids
+Isotretinoin,Tetracycline,High,"This combination can increase the risk of pseudotumor cerebri, a condition of increased pressure around the brain.",Never combine
+Warfarin,NSAIDs,High,"All NSAIDs, including Ibuprofen and Naproxen, increase the risk of bleeding, especially in the stomach, when taken with Warfarin.",Paracetamol is the preferred painkiller
+Warfarin,Paracetamol,Moderate,"High, consistent doses of paracetamol (more than 2 grams/day) can enhance the effect of warfarin. Occasional use is generally safe.",Monitor INR if taking regularly
+Clarithromycin,Atorvastatin,High,"Clarithromycin is a strong inhibitor of the enzyme that metabolizes atorvastatin, leading to a very high risk of myopathy and rhabdomyolysis.",Temporarily stop statin or use different antibiotic
+Ketoconazole,Simvastatin,High,"Ketoconazole is a potent inhibitor of the enzyme metabolizing simvastatin, dramatically increasing its concentration and risk of severe muscle injury.",Temporarily stop statin during treatment
+Spironolactone,Lisinopril,Moderate,"This combination of a potassium-sparing diuretic and an ACE inhibitor increases the risk of dangerous hyperkalemia. Requires close monitoring.",Monitor potassium levels
+Furosemide,Gentamicin,High,"Combining a loop diuretic with an aminoglycoside antibiotic increases the risk of ototoxicity (hearing loss) and nephrotoxicity (kidney damage).",Monitor renal function and hearing
+Loratadine,Alcohol,Low,"Loratadine is a non-sedating antihistamine and generally has a low risk of interaction with alcohol, but some individuals may still experience mild drowsiness.",Use with caution
+Cetirizine,Alcohol,Moderate,"Cetirizine can cause drowsiness in some people, and alcohol can potentiate this effect, leading to increased sedation.",Avoid driving or operating machinery
+Diphenhydramine,Alcohol,High,"This combination causes significant drowsiness, dizziness, and impaired motor skills. It is a very common cause of accidental over-sedation.",Avoid Combination
+Pseudoephedrine,MAOI,High,"Can lead to a severe hypertensive crisis. A 14-day washout period is required after stopping an MAOI before using pseudoephedrine.",Never combine
+Omeprazole,Diazepam,Moderate,"Omeprazole can inhibit the metabolism of diazepam, increasing its concentration and sedative effects.",Lorazepam is less affected
+Famotidine,Ibuprofen,Low,"Famotidine (an H2 blocker) can actually be used to protect the stomach from the irritating effects of ibuprofen. This is a potentially beneficial interaction.",Generally safe
+Calcium,Ciprofloxacin,Moderate,"Calcium supplements or calcium-rich foods can significantly reduce the absorption of ciprofloxacin. Separate doses by at least 2 hours.",Separate Doses
+Iron,Levothyroxine,Moderate,"Iron supplements interfere with the absorption of levothyroxine. Separate administration by at least 4 hours to ensure proper thyroid hormone levels.",Separate Doses
+Magnesium,Alendronate,High,"Magnesium supplements (and many antacids) can severely impair the absorption of alendronate, making it ineffective for treating osteoporosis.",Follow strict dosing instructions
+Zinc,Quinolone Antibiotics,Moderate,"Zinc supplements can reduce the absorption of quinolone antibiotics like ciprofloxacin. Separate doses by several hours.",Separate Doses
+Herbal Tea,Warfarin,Moderate,"Certain herbal teas, like chamomile or green tea, can have mild blood-thinning effects and may increase the risk of bleeding with warfarin.",Consult Doctor, monitor INR
+Probiotics,Antibiotics,Info,"Probiotics can help restore gut flora during antibiotic treatment, but should be taken a few hours apart from the antibiotic dose to ensure the probiotics are not killed off.",Separate Doses
+Caffeine,Ciprofloxacin,Moderate,"Ciprofloxacin can inhibit the metabolism of caffeine, leading to increased caffeine levels and side effects like jitteriness, anxiety, and rapid heartbeat.",Reduce caffeine intake
+Alcohol,Energy Drinks,High,"Combining alcohol (a depressant) with the high caffeine content of energy drinks (a stimulant) can mask the intoxicating effects of alcohol, leading to overconsumption and increased risk of alcohol poisoning.",Avoid Combination
+Antidepressants,Weight Loss Pills,High,"Some weight loss supplements contain stimulants that can interact dangerously with antidepressants, especially MAOIs, leading to high blood pressure or serotonin syndrome.",Consult Doctor before using any supplements
+Grapefruit Juice,Sildenafil,Moderate,"Grapefruit juice can increase the blood levels of sildenafil, increasing the risk of side effects like headache, flushing, and low blood pressure.",Avoid Combination
+Dairy,Ciprofloxacin,Moderate,"Calcium in dairy can bind to ciprofloxacin and reduce its absorption and effectiveness. Avoid taking with milk or yogurt.",Separate doses by 2 hours
+Loperamide,Ritonavir,High,"Ritonavir can significantly increase the concentration of loperamide, potentially causing serious cardiac side effects.",Avoid Combination
+Colchicine,Clarithromycin,High,"This combination can lead to life-threatening colchicine toxicity, especially in patients with kidney or liver impairment.",Avoid Combination
+Rivaroxaban,Aspirin,High,"Combining these two blood thinners significantly increases the risk of major bleeding events.",Avoid Combination unless prescribed by a specialist
+Apixaban,Ibuprofen,High,"Combining a direct oral anticoagulant (DOAC) like apixaban with an NSAID like ibuprofen increases the risk of serious gastrointestinal bleeding.",Paracetamol is a safer alternative
+Dabigatran,Ketoconazole,High,"Ketoconazole can significantly increase the levels of dabigatran, raising the risk of major bleeding.",Avoid Combination
+Insulin,Prednisone,High,"Corticosteroids like prednisone can increase blood sugar levels, directly counteracting the effect of insulin and requiring a dose adjustment for diabetics.",Monitor blood sugar and adjust insulin dose
+Metformin,CT Contrast Dye,High,"Iodinated contrast dye used in CT scans can cause temporary kidney impairment, which increases the risk of lactic acidosis in patients taking metformin. Metformin is often held before the procedure.",Follow radiologist's instructions
+Glipizide,Beta-blockers,Moderate,"Beta-blockers can mask the warning signs of hypoglycemia (low blood sugar), like shakiness and rapid heartbeat, which is dangerous for a patient on a sulfonylurea.",Monitor blood sugar levels closely
+Pioglitazone,Gemfibrozil,High,"Gemfibrozil can increase the concentration of pioglitazone, increasing the risk of fluid retention and heart failure.",Avoid Combination
+Canagliflozin,Digoxin,Moderate,"Canagliflozin (an SGLT2 inhibitor) can increase the concentration of digoxin. Monitoring of digoxin levels is recommended.",Monitor drug levels
+Sitagliptin,Insulin,Moderate,"Combining a DPP-4 inhibitor with insulin can increase the risk of hypoglycemia. A reduction in the insulin dose may be necessary.",Monitor blood sugar levels
+Liraglutide,Warfarin,Moderate,"GLP-1 agonists like liraglutide can delay gastric emptying, which may affect the absorption of other oral medications like warfarin. INR should be monitored.",Monitor INR
+Enalapril,Sacubitril/Valsartan,High,"Do not co-administer with an ACE inhibitor. This combination greatly increases the risk of angioedema. A 36-hour washout period is required when switching.",Never combine
+Hydrochlorothiazide,Lithium,High,"Thiazide diuretics reduce lithium clearance and significantly increase the risk of lithium toxicity.",Avoid Combination or monitor levels very closely
+Chlorthalidone,Dofetilide,High,"Diuretic-induced low potassium levels increase the risk of a life-threatening arrhythmia (Torsades de Pointes) with dofetilide.",Monitor potassium and magnesium levels
+Amlodipine,Simvastatin,Moderate,"Amlodipine can increase the concentration of simvastatin. The dose of simvastatin should not exceed 20mg daily when taken with amlodipine.",Limit simvastatin dose
+Diltiazem,Lovastatin,High,"Diltiazem inhibits the metabolism of lovastatin, significantly increasing the risk of myopathy.",Use a different statin or lower the dose
+Felodipine,Itraconazole,High,"Itraconazole is a potent inhibitor of the enzyme that breaks down felodipine, leading to a large increase in its concentration and risk of low blood pressure.",Avoid Combination
+Nifedipine,Grapefruit Juice,Moderate,"Grapefruit juice can increase the levels of nifedipine, enhancing its blood pressure-lowering effect and side effects.",Avoid Combination
+Clonidine,Propranolol,High,"If clonidine is stopped abruptly while a patient is on a non-selective beta-blocker like propranolol, there is a risk of severe rebound hypertension.",Taper clonidine slowly, consult doctor
+Doxazosin,Tadalafil,Moderate,"Both medications lower blood pressure, and their combined use can lead to symptomatic hypotension (dizziness, fainting).",Start with low doses and monitor blood pressure
+Hydralazine,Minoxidil,High,"Both are potent vasodilators. Their combined use can cause severe hypotension and reflex tachycardia without careful management.",Specialist use only
+Finasteride,Testosterone,Info,"Finasteride works by blocking the conversion of testosterone to DHT. Taking external testosterone may counteract some effects of finasteride, depending on the goal of therapy.",Consult Endocrinologist
+Tamsulosin,Paroxetine,Moderate,"Paroxetine can inhibit the metabolism of tamsulosin, potentially increasing its concentration and side effects like dizziness.",Monitor for side effects
+Oxybutynin,Potassium Chloride,High,"Anticholinergic drugs like oxybutynin slow gut motility, which can delay the passage of potassium chloride tablets, increasing the risk of severe esophageal injury.",Use liquid potassium if possible
+Tolterodine,Ketoconazole,High,"Ketoconazole can significantly increase levels of tolterodine, increasing the risk of side effects like dry mouth, constipation, and blurred vision.",Alternative antifungal
+Solifenacin,Ritonavir,High,"Ritonavir is a potent enzyme inhibitor that can dramatically increase solifenacin levels, increasing anticholinergic side effects.",Avoid Combination
+Mirabegron,Metoprolol,Moderate,"Mirabegron can inhibit an enzyme responsible for metabolizing metoprolol, increasing its levels and risk of bradycardia or hypotension.",Monitor heart rate and blood pressure
+Montelukast,Phenobarbital,Moderate,"Phenobarbital can induce the metabolism of montelukast, potentially reducing its effectiveness for asthma or allergies.",Monitor for clinical effect
+Fluticasone,Ritonavir,High,"Ritonavir can dramatically increase levels of inhaled or nasal fluticasone, leading to systemic corticosteroid side effects (Cushing's syndrome).",Avoid Combination
+Salmeterol,Clarithromycin,High,"Clarithromycin can increase the risk of cardiovascular side effects from long-acting beta-agonists like salmeterol.",Use alternative antibiotic
+Albuterol,Amitriptyline,Moderate,"Tricyclic antidepressants can potentiate the vascular effects of albuterol, potentially increasing heart rate and blood pressure.",Use with caution
+Ipratropium,Tiotropium,High,"These are both anticholinergic bronchodilators. Using them together provides no additional benefit and significantly increases the risk of anticholinergic side effects.",Use one or the other
+Esomeprazole,Clopidogrel,Moderate,"Esomeprazole may reduce the conversion of clopidogrel to its active form, potentially reducing its antiplatelet effect.",Pantoprazole or Rabeprazole are preferred
+Lansoprazole,Methotrexate,Moderate,"High doses of methotrexate may have delayed clearance when taken with PPIs, increasing the risk of toxicity.",Consider H2 blocker
+Pantoprazole,Warfarin,Low,"Pantoprazole has a lower risk of interacting with warfarin compared to omeprazole, but INR should still be monitored when starting or stopping.",Monitor INR
+Ranitidine,Theophylline,Moderate,"Ranitidine can inhibit the metabolism of theophylline, potentially increasing its levels and risk of toxicity (note: Ranitidine is largely recalled).",Famotidine is a safer alternative
+Cimetidine,Warfarin,High,"Cimetidine is a potent enzyme inhibitor and can significantly increase warfarin levels and bleeding risk.",Use a different H2 blocker like Famotidine
+Sucralfate,Phenytoin,Moderate,"Sucralfate can reduce the absorption of phenytoin. Doses should be separated by at least 2 hours.",Separate Doses
+Misoprostol,Magnesium Antacids,Moderate,"Combining these can increase the risk of diarrhea.",Avoid Combination
+Bisacodyl,Milk,Moderate,"Milk or antacids taken within an hour of an enteric-coated bisacodyl tablet can cause the coating to dissolve prematurely, leading to stomach upset.",Separate Doses
+Senna,Digoxin,Moderate,"Laxative abuse leading to low potassium levels can increase the risk of digoxin toxicity.",Monitor electrolytes
+Polyethylene Glycol,Diuretics,Moderate,"Combining an osmotic laxative with diuretics can increase the risk of electrolyte imbalances and dehydration.",Ensure adequate fluid intake
+Ondansetron,SSRIs,High,"Combining can increase the risk of serotonin syndrome. This is a well-known interaction and requires caution.",Monitor for symptoms of serotonin syndrome
+Promethazine,Opioids,High,"Increases sedation and risk of respiratory depression. Use together with extreme caution and at lower doses.",Avoid if possible
+Metoclopramide,Haloperidol,High,"Both drugs can cause extrapyramidal symptoms (movement disorders), and the risk is increased when they are used together.",Avoid Combination
+Scopolamine,Antihistamines,Moderate,"Increases the burden of anticholinergic side effects like drowsiness, dry mouth, blurred vision, and confusion.",Use with caution, especially in the elderly
+Dimenhydrinate,Alcohol,High,"Significantly increases drowsiness and dizziness, impairing coordination and judgment.",Avoid Combination
+Meclizine,Sedatives,High,"Combining with other CNS depressants like benzodiazepines or sleep aids can cause profound sedation.",Avoid Combination
+Sumatriptan,Ergotamines,High,"Both are used for migraines and cause vasoconstriction. Using them within 24 hours of each other can lead to excessive blood vessel narrowing.",Do not use within 24 hours of each other
+Rizatriptan,Propranolol,Moderate,"Propranolol can increase the concentration of rizatriptan. The dose of rizatriptan should be adjusted.",Lower rizatriptan dose
+Zolmitriptan,MAOI,High,"MAOIs inhibit the breakdown of zolmitriptan, leading to dangerously high levels. Should not be used together or within 2 weeks of stopping an MAOI.",Never combine
+Naproxen,Lisinopril,Moderate,"NSAIDs can reduce the blood pressure-lowering effect of ACE inhibitors and may increase the risk of kidney damage.",Monitor blood pressure and renal function
+Celecoxib,Warfarin,Moderate,"Although Celecoxib is a COX-2 inhibitor, it can still increase the anticoagulant effect of warfarin. INR should be monitored.",Monitor INR
+Meloxicam,Methotrexate,High,"Like other NSAIDs, meloxicam can increase methotrexate toxicity, especially at high doses.",Avoid Combination if possible
+Diclofenac,Cyclosporine,High,"Concurrent use increases the risk of nephrotoxicity (kidney damage) from both drugs.",Monitor renal function very closely
+Ketorolac,Lithium,High,"Ketorolac can significantly increase lithium levels, leading to toxicity. This combination is generally contraindicated.",Avoid Combination
+Tramadol,Carbamazepine,Moderate,"Carbamazepine can increase the metabolism of tramadol, reducing its analgesic effect.",May need to adjust tramadol dose
+Tapentadol,Alcohol,High,"Alcohol can accelerate the release of tapentadol from extended-release formulations, leading to a potentially fatal overdose (dose dumping).",Avoid Alcohol
+Fentanyl,Grapefruit Juice,Moderate,"Grapefruit juice can increase the concentration of fentanyl, increasing the risk of respiratory depression.",Avoid Combination
+Hydrocodone,Benzodiazepines,High,"This combination carries a black box warning due to the high risk of profound sedation, respiratory depression, coma, and death.",Avoid Combination
+Oxycodone,Ritonavir,High,"Ritonavir can dramatically increase oxycodone levels, leading to a risk of fatal overdose.",Avoid Combination
+Morphine,Gabapentin,Moderate,"Concurrent use can enhance the CNS depressant effects of both drugs, particularly sedation and dizziness.",Use with caution
+Buprenorphine,Naltrexone,High,"Naltrexone is an opioid antagonist and will precipitate severe withdrawal symptoms in a patient physically dependent on buprenorphine.",Used for different stages of addiction treatment
+Naloxone,Oxycodone,Info,"Naloxone is an opioid antagonist used to rapidly reverse the effects of an opioid overdose. It has no effect if opioids are not present.",Opioid overdose reversal agent
+Donepezil,Oxybutynin,Moderate,"Donepezil (a cholinesterase inhibitor) and oxybutynin (an anticholinergic) have opposing mechanisms of action, which may reduce the effectiveness of both drugs.",Consult Doctor
+Galantamine,Paroxetine,Moderate,"Paroxetine can inhibit the metabolism of galantamine, increasing its levels and the risk of cholinergic side effects.",Monitor for side effects
+Rivastigmine,Metoclopramide,Moderate,"Both drugs can increase the risk of extrapyramidal symptoms (movement disorders).",Use with caution
+Memantine,Amantadine,Moderate,"Both drugs are NMDA receptor antagonists. Combining them may increase the risk of CNS side effects like confusion, dizziness, and hallucinations.",Use with caution
+Levodopa,MAOI,High,"Combining levodopa with non-selective MAOIs can cause a hypertensive crisis due to increased catecholamine levels.",Selective MAO-B inhibitors are safe
+Pramipexole,Ciprofloxacin,Moderate,"Ciprofloxacin can inhibit the clearance of pramipexole, increasing its plasma concentration and risk of side effects.",Monitor for side effects
+Ropinirole,Fluvoxamine,High,"Fluvoxamine is a potent inhibitor of the enzyme that metabolizes ropirole, leading to a large increase in its concentration.",Alternative SSRI or lower ropirole dose
+Selegiline,Meperidine,High,"This combination can cause severe serotonin syndrome, with agitation, high fever, and convulsions. It can be fatal.",Never combine
+Rasagiline,Dextromethorphan,High,"Increased risk of serotonin syndrome. Should not be used together or within 14 days of each other.",Avoid Combination
+Entacapone,Dobutamine,Moderate,"Entacapone can inhibit the metabolism of drugs like dobutamine, increasing their effects on heart rate and blood pressure.",Monitor cardiovascular status
+Topiramate,Oral Contraceptives,Moderate,"Topiramate (especially at doses >200mg/day) can decrease the effectiveness of estrogen-containing oral contraceptives, leading to a risk of unplanned pregnancy.",Use backup contraception
+Lamotrigine,Valproic Acid,High,"Valproic acid significantly inhibits the metabolism of lamotrigine, more than doubling its concentration and greatly increasing the risk of a life-threatening rash (Stevens-Johnson syndrome).",Lamotrigine dose must be reduced significantly
+Levetiracetam,Alcohol,Moderate,"Alcohol can enhance the sedative effects of levetiracetam, leading to increased drowsiness and dizziness.",Use with caution
+Zonisamide,Topiramate,Moderate,"Both drugs can increase the risk of metabolic acidosis and kidney stones. Patients should be advised to stay well-hydrated.",Monitor bicarbonate levels
+Metformin,Amlodipine,Safe,"No significant interaction known. This is a very common and safe combination for patients with diabetes and high blood pressure.",None
+Paracetamol,Loratadine,Safe,"No interaction known. It is safe to take this non-drowsy antihistamine with paracetamol.",None
+Lisinopril,Paracetamol,Safe,"No significant interaction. Paracetamol is a preferred painkiller for patients on ACE inhibitors like Lisinopril.",None
+Atorvastatin,Metformin,Safe,"No interaction known. These are frequently prescribed together for patients with high cholesterol and type 2 diabetes.",None
+Sertraline,Amlodipine,Safe,"No significant interaction known between this SSRI and calcium channel blocker.",None
+Amoxicillin,Ibuprofen,Safe,"No direct interaction. It is generally safe to take this common antibiotic with ibuprofen for pain or fever relief during an infection.",None
+Cetirizine,Paracetamol,Safe,"No interaction known. It is safe to take this antihistamine with paracetamol.",None
+Omeprazole,Amlodipine,Safe,"No significant interaction known. Safe to use together.",None
+Levothyroxine,Metformin,Safe,"No interaction known. Commonly used together in patients with thyroid issues and diabetes.",None
+Metformin,Gliclazide,Safe,"This is a standard combination therapy for type 2 diabetes. They work in different ways to lower blood sugar.",None
+Lisinopril,Amlodipine,Safe,"This is a common and effective combination for treating high blood pressure.",None
+Atorvastatin,Ezetimibe,Safe,"This is a standard combination for cholesterol management. Ezetimibe works in the gut to reduce cholesterol absorption, complementing the action of statins.",None
+Paracetamol,Codeine,Info,"This is a common combination painkiller (e.g., Co-codamol). Codeine is an opioid, so it can cause drowsiness and constipation. Should be used for short-term pain.",Consult Pharmacist
+Aspirin,Omeprazole,Info,"Omeprazole is often prescribed alongside long-term aspirin to protect the stomach and reduce the risk of ulcers and bleeding.",Stomach protection
+Albuterol,Fluticasone,Safe,"This is a standard combination in inhalers for asthma and COPD. Albuterol is a rescue bronchodilator, and fluticasone is a steroid that reduces inflammation.",Standard asthma therapy
+Montelukast,Loratadine,Safe,"No interaction known. Often used together to manage allergy and asthma symptoms.",None
+Fexofenadine,Pseudoephedrine,Info,"This is a common combination in allergy medications. Fexofenadine is an antihistamine, and pseudoephedrine is a decongestant.",Decongestant can raise blood pressure
+Ramipril,Hydrochlorothiazide,Safe,"This is a very common combination pill for high blood pressure. The ACE inhibitor and diuretic work together effectively.",Standard hypertension therapy
+Losartan,Hydrochlorothiazide,Safe,"This is a very common combination pill for high blood pressure, combining an ARB and a diuretic.",Standard hypertension therapy
+Metoprolol,Amlodipine,Safe,"This combination of a beta-blocker and a calcium channel blocker is often used to treat high blood pressure and angina.",None
+Gabapentin,Paracetamol,Safe,"No interaction known. It is safe to use paracetamol for pain while taking gabapentin.",None
+Pregabalin,Metformin,Safe,"No interaction known. Safe to use together.",None
+Tamsulosin,Finasteride,Safe,"This is a standard combination therapy for benign prostatic hyperplasia (BPH). Tamsulosin relaxes the bladder neck muscles, while finasteride shrinks the prostate.",Standard BPH therapy
+Allopurinol,Paracetamol,Safe,"No interaction known. Safe to use paracetamol for pain relief if needed while taking allopurinol for gout.",None
+Colchicine,Paracetamol,Safe,"No interaction known. Paracetamol can be used for pain relief during a gout attack being treated with colchicine.",None
+Sertraline,Buspirone,Moderate,"Increased risk of serotonin syndrome. This combination may be used by specialists but requires careful monitoring.",Monitor for symptoms
+Bupropion,SSRI,Moderate,"Bupropion can lower the seizure threshold. When combined with an SSRI, the risk may increase. Also used as an augmentation strategy in depression.",Consult Doctor
+Trazodone,SSRI,Moderate,"Combining can increase the risk of serotonin syndrome and sedation. Often used together at low doses of trazodone for insomnia in patients with depression.",Monitor for symptoms and sedation
+Mirtazapine,Sertraline,Moderate,"Increased risk of serotonin syndrome, although it is a common combination used by specialists for treatment-resistant depression.",Monitor for symptoms
+Venlafaxine,MAOI,High,"Extremely high risk of serotonin syndrome. A 14-day washout period is required when switching between these medications.",Never combine
+Duloxetine,Ibuprofen,Moderate,"Like other SNRIs/SSRIs, combining with NSAIDs increases the risk of gastrointestinal bleeding.",Consult Doctor
+Escitalopram,Metoprolol,Moderate,"Escitalopram can inhibit the enzyme that metabolizes metoprolol, increasing its concentration and risk of side effects like slow heart rate.",Monitor heart rate and blood pressure
+Fluoxetine,Phenytoin,High,"Fluoxetine can increase phenytoin levels, leading to toxicity. Phenytoin levels must be monitored closely.",Monitor drug levels
+Paroxetine,Risperidone,High,"Paroxetine is a potent enzyme inhibitor that can significantly increase risperidone levels, increasing the risk of extrapyramidal side effects.",Alternative SSRI or lower risperidone dose
+Fluvoxamine,Theophylline,High,"Fluvoxamine can dramatically increase theophylline levels, leading to a high risk of toxicity.",Alternative SSRI
+Sertraline,Warfarin,Moderate,"Sertraline can increase the anticoagulant effect of warfarin. INR should be monitored closely when starting, stopping, or changing the dose of sertraline.",Monitor INR
+Citalopram,Cimetidine,Moderate,"Cimetidine can increase citalopram levels, increasing the risk of side effects, including a heart rhythm problem (QT prolongation).",Use a different H2 blocker like Famotidine
+Diazepam,Alcohol,High,"Significantly enhances sedative and respiratory depressant effects, leading to a high risk of overdose and accidents.",Avoid Combination
+Zolpidem,Alcohol,High,"Greatly increases the risk of sleep-walking, sleep-driving, and other complex sleep behaviors, along with profound sedation.",Avoid Combination
+Lorazepam,Opioids,High,"Black box warning for this combination due to the high risk of severe respiratory depression, coma, and death.",Avoid Combination
+Alprazolam,Grapefruit Juice,Moderate,"Grapefruit juice can inhibit the metabolism of alprazolam, increasing its concentration and sedative effects.",Avoid or limit grapefruit juice
+Clonazepam,Antihistamines,Moderate,"Combining with sedating antihistamines like diphenhydramine increases drowsiness and CNS depression.",Use non-sedating antihistamine
+Temazepam,Ciprofloxacin,Moderate,"Ciprofloxacin can inhibit the metabolism of some benzodiazepines, potentially increasing their sedative effects.",Use with caution

@@ -19,7 +19,7 @@
         <header class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold text-slate-700">Medicine Assistant</h1>
             {% if page != 'login' %}
-            <a href="/logout" class="text-sm font-medium text-blue-600 hover:text-blue-800">Logout</a>
+            <a href="{{ url_for('logout') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Logout</a>
             {% endif %}
         </header>
 
@@ -51,7 +51,7 @@
         <div class="bg-white p-8 rounded-lg shadow-md">
             <h2 class="text-2xl font-semibold mb-4 text-center">Login or Create Profile</h2>
             <p class="text-center text-slate-500 mb-6">Enter your name to begin. If the profile doesn't exist, we'll create a new one for you.</p>
-            <form action="/" method="post" class="space-y-4">
+            <form action="{{ url_for('login') }}" method="post" class="space-y-4">
                 <div>
                     <label for="name" class="block text-sm font-medium text-slate-600">Patient Name</label>
                     <input type="text" name="name" id="name" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Mr. Kumar" required>
@@ -68,11 +68,11 @@
         <div class="bg-white p-8 rounded-lg shadow-md">
             <h2 class="text-2xl font-semibold mb-4">Set Up Your Health Profile</h2>
             <p class="text-slate-500 mb-6">This information helps provide personalized alerts. You can update it anytime.</p>
-            <form action="/profile" method="post" class="space-y-4">
+            <form action="{{ url_for('profile') }}" method="post" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium">Age</label>
-                        <input type="number" name="age" value="{{ patient.age }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., 55">
+                        <input type="number" name="age" value="{{ patient.age or '' }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., 55">
                     </div>
                     <div>
                         <label class="block text-sm font-medium">Gender</label>
@@ -86,15 +86,15 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium">Weight (in kg)</label>
-                    <input type="number" step="0.1" name="weight_kg" value="{{ patient.weight_kg }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., 70.5">
+                    <input type="number" step="0.1" name="weight_kg" value="{{ patient.weight_kg or '' }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., 70.5">
                 </div>
                 <div>
                     <label class="block text-sm font-medium">Medical Conditions</label>
-                    <input type="text" name="conditions" value="{{ patient.conditions }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Diabetes, High Blood Pressure (comma separated)">
+                    <input type="text" name="conditions" value="{{ patient.conditions or '' }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Diabetes, High Blood Pressure (comma separated)">
                 </div>
                 <div>
                     <label class="block text-sm font-medium">Drug Allergies</label>
-                    <input type="text" name="allergies" value="{{ patient.allergies }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Penicillin, Ibuprofen (comma separated)">
+                    <input type="text" name="allergies" value="{{ patient.allergies or '' }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Penicillin, Ibuprofen (comma separated)">
                 </div>
                 <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">
                     Save Profile
@@ -117,14 +117,31 @@
                         <p class="text-sm mt-2"><strong>Conditions:</strong> {{ patient.conditions or 'None specified' }}</p>
                         <p class="text-sm"><strong>Allergies:</strong> {{ patient.allergies or 'None specified' }}</p>
                     </div>
-                    <a href="/profile" class="text-sm font-medium text-blue-600 hover:text-blue-800">Edit Profile</a>
+                    <a href="{{ url_for('profile') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Edit Profile</a>
                 </div>
+            </div>
+
+            <!-- NEW: AI Assistant -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold mb-4">🤖 AI Assistant</h3>
+                <p class="text-slate-500 mb-4">Ask a question about your health or medications below.</p>
+                <form action="{{ url_for('ask_assistant') }}" method="post">
+                    <div class="flex items-center space-x-2">
+                        <input type="text" name="question" class="flex-grow w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Is it safe to take Aspirin?" required>
+                        <button type="submit" class="py-2 px-4 rounded-md font-medium text-white bg-slate-600 hover:bg-slate-700">Ask</button>
+                    </div>
+                </form>
+                {% if ai_response %}
+                <div class="mt-4 p-4 bg-slate-100 border border-slate-200 rounded-md">
+                    <p class="text-slate-800">{{ ai_response }}</p>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Add Medication Form -->
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h3 class="text-xl font-semibold mb-4">Add New Medication</h3>
-                <form action="/add_medication" method="post" class="flex items-end space-x-4">
+                <form action="{{ url_for('add_medication') }}" method="post" class="flex items-end space-x-4">
                     <div class="flex-grow">
                         <label class="block text-sm font-medium">Drug Name</label>
                         <input type="text" name="drug_name" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Metformin" required>
