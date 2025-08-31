@@ -59,8 +59,8 @@ def ask_local_llm(context, question):
 
     [INSTRUCTIONS]
     1. Analyze the context and the question.
-    2. If the context directly answers the question, provide a helpful, conversational response.
-    3. If the context is NOT relevant or doesn't contain the answer, you MUST respond with: "I'm sorry, I don't have enough information in my knowledge base to answer that question. It's best to consult a healthcare professional."
+    2. If the context directly answers the question, provide a helpful, conversational response. Start your answer directly, without any preamble like "Based on the context...".
+    3. If the context is NOT relevant or doesn't contain the answer, you MUST respond with ONLY this exact sentence: "I'm sorry, I don't have enough information in my knowledge base to answer that question. It's best to consult a healthcare professional."
     4. Never invent information. Prioritize safety above all.
     """
     api_url = "http://localhost:1234/v1/chat/completions"
@@ -71,12 +71,17 @@ def ask_local_llm(context, question):
         "temperature": 0.3,
     }
     try:
-        response = requests.post(api_url, headers=headers, data=json.dumps(payload), timeout=20)
+        # --- THE FIX IS HERE ---
+        # Increased the timeout to 60 seconds to give the model more time to respond.
+        response = requests.post(api_url, headers=headers, data=json.dumps(payload), timeout=60)
         response.raise_for_status()
         return response.json()['choices'][0]['message']['content']
+    except requests.exceptions.Timeout:
+        print("[ERROR] Connection to LM Studio timed out after 60 seconds.")
+        return "The AI assistant is taking too long to respond. The model may be too busy. Please try again in a moment."
     except requests.exceptions.RequestException as e:
         print(f"[ERROR] Could not connect to LM Studio: {e}")
-        return "I am unable to connect to the AI assistant at the moment. Please ensure LM Studio is running."
+        return "I am unable to connect to the AI assistant at the moment. Please ensure LM Studio is running and accessible."
 
 # --- USER & PROFILE MANAGEMENT (Unchanged) ---
 @app.route('/', methods=['GET', 'POST'])
@@ -186,4 +191,3 @@ def logout():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
