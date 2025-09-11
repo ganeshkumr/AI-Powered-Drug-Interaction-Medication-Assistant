@@ -1,109 +1,118 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 import sqlite3
-import requests
 import pandas as pd
-import numpy as np
-import faiss
-from sentence_transformers import SentenceTransformer
+import requests
 import json
+from werkzeug.security import generate_password_hash, check_password_hash
+import re
 
 app = Flask(__name__)
-app.secret_key = 'super_secret_key_for_a_great_project' 
+app.secret_key = 'the_final_and_most_secure_key' 
 
-# --- RAG System Setup (Phase 1 Logic) ---
+# --- RAG System: The Single Source of Truth ---
 class RAGSystem:
-    """Handles loading data and searching for relevant context."""
     def __init__(self, data_file):
         try:
             self.df = pd.read_csv(data_file)
-            self.encoder = SentenceTransformer('all-MiniLM-L6-v2')
-            self.df['description'] = self.df.apply(lambda row: f"Interaction between {row['drug_a']} and {row['drug_b']}", axis=1)
-            embeddings = self.encoder.encode(self.df['description'].tolist())
-            self.index = faiss.IndexFlatL2(embeddings.shape[1])
-            self.index.add(np.array(embeddings, dtype=np.float32))
-            print("[INFO] RAG System initialized successfully.")
+            self.df['drug_a_lower'] = self.df['drug_a'].astype(str).str.lower().str.strip()
+            self.df['drug_b_lower'] = self.df['drug_b'].astype(str).str.lower().str.strip()
+            print("[INFO] RAG Knowledge Base initialized successfully.")
         except Exception as e:
             print(f"[ERROR] Could not initialize RAG system: {e}")
             self.df = None
 
-    def search(self, query, k=1):
-        """Searches for the most relevant document in the CSV."""
+    def search_interaction(self, drug1, drug2):
         if self.df is None: return None
-        query_embedding = self.encoder.encode([query])
-        distances, indices = self.index.search(np.array(query_embedding, dtype=np.float32), k)
-        
-        # A simple threshold to avoid irrelevant results
-        if distances[0][0] < 1.0: # Lower distance means better match
-            return self.df.iloc[indices[0][0]].to_dict()
+        d1_lower = drug1.lower().strip(); d2_lower = drug2.lower().strip()
+        for _, row in self.df.iterrows():
+            row_a = row['drug_a_lower']; row_b = row['drug_b_lower']
+            if (d1_lower in row_a and d2_lower in row_b) or \
+               (d1_lower in row_b and d2_lower in row_a):
+                return row.to_dict()
         return None
 
-# Initialize the RAG system globally when the app starts
 rag_system = RAGSystem('interactions.csv')
 
-# --- Helper & API Functions ---
+# --- Helper Functions ---
 def get_db_connection():
-    conn = sqlite3.connect('medicine_log.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+    conn = sqlite3.connect('medicine_log.db'); conn.row_factory = sqlite3.Row; return conn
 
 # --- AI & Safety Check Logic ---
-def ask_local_llm(context, question):
-    """Connects to LM Studio to get a conversational answer."""
-    prompt = f"""You are a helpful and cautious pharmacy assistant. Your role is to answer questions based ONLY on the provided context.
+def ask_local_llm(context):
+    prompt = f"""You are an expert clinical pharmacologist AI. Your persona is that of a knowledgeable, caring, and direct friend who prioritizes the user's safety above all else. Analyze the complete [CONTEXT] provided and generate a response based on the [INSTRUCTIONS].
 
     [CONTEXT]
     {context}
 
-    [QUESTION]
-    {question}
-
     [INSTRUCTIONS]
-    1. Analyze the context and the question.
-    2. If the context directly answers the question, provide a helpful, conversational response. Start your answer directly, without any preamble like "Based on the context...".
-    3. If the context is NOT relevant or doesn't contain the answer, you MUST respond with ONLY this exact sentence: "I'm sorry, I don't have enough information in my knowledge base to answer that question. It's best to consult a healthcare professional."
-    4. Never invent information. Prioritize safety above all.
+    1.  **Adopt a Persona:** Speak directly to the patient by name. Your tone should be warm and personal, but become very firm and clear when a serious risk is detected.
+    2.  **Analyze Holistically:** This is your most important task. Review all the information provided: the patient's profile, their **entire list of current medications**, and the new drug they are asking about. Look for not just pairwise (A+B) interactions, but also potential multi-drug (A+B+C) interactions based on your internal knowledge.
+    3.  **Synthesize Findings:** Generate a single, easy-to-understand summary.
+        * **If any CRITICAL or HIGH RISK is found:** State it clearly and directly. Explain the risk in simple terms. **Example:** "Hi Ganesh, I've looked at your full medication list and this is a major concern. Taking an NSAID while you are on both Warfarin and Methotrexate significantly increases the risk of severe side effects. Please do not take this. It's really important to talk to your doctor about a safer alternative."
+        * **If MODERATE risks are found:** Explain them simply. **Example:** "Okay Ganesh, I see you're taking an ACE inhibitor and you want to add a potassium supplement. Taking these together can sometimes raise your potassium levels too high. I'd really recommend talking to your doctor about this first."
+        * **If everything is SAFE:** Be reassuring. **Example:** "Hi Ganesh, I've checked Metformin against your profile and all your other medications, and everything looks safe. It's great that you're being so careful!"
+    4.  **Final Verdict:** End your response with a clear, one-line verdict on a new line: "Verdict: SAFE TO ADD" or "Verdict: DO NOT ADD". This is mandatory.
     """
     api_url = "http://localhost:1234/v1/chat/completions"
     headers = {"Content-Type": "application/json"}
-    payload = {
-        "model": "local-model",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3,
-    }
+    payload = {"model": "local-model", "messages": [{"role": "user", "content": prompt}], "temperature": 0.4}
     try:
-        # --- THE FIX IS HERE ---
-        # Increased the timeout to 60 seconds to give the model more time to respond.
         response = requests.post(api_url, headers=headers, data=json.dumps(payload), timeout=60)
         response.raise_for_status()
         return response.json()['choices'][0]['message']['content']
-    except requests.exceptions.Timeout:
-        print("[ERROR] Connection to LM Studio timed out after 60 seconds.")
-        return "The AI assistant is taking too long to respond. The model may be too busy. Please try again in a moment."
-    except requests.exceptions.RequestException as e:
-        print(f"[ERROR] Could not connect to LM Studio: {e}")
-        return "I am unable to connect to the AI assistant at the moment. Please ensure LM Studio is running and accessible."
+    except requests.exceptions.RequestException:
+        return "I am unable to connect to the AI assistant. Please ensure LM Studio is running.\nVerdict: DO NOT ADD"
 
-# --- USER & PROFILE MANAGEMENT (Unchanged) ---
-@app.route('/', methods=['GET', 'POST'])
+def get_personalized_warnings(new_drug, patient):
+    """Generates warnings based on the patient's specific profile (allergies, conditions)."""
+    warnings = []
+    drug_lower = new_drug.lower().strip()
+    conditions = patient['conditions'].lower() if patient['conditions'] else ""
+    allergies = patient['allergies'].lower() if patient['allergies'] else ""
+    if allergies and any(allergy.strip() in drug_lower for allergy in allergies.split(',')):
+        warnings.append(f"🚨 Allergy Alert: Profile indicates an allergy to '{new_drug.title()}'.")
+    rules = {'ibuprofen': ['diabetes', 'kidney disease', 'high blood pressure'], 'aspirin': ['stomach ulcers', 'bleeding disorder']}
+    if drug_lower in rules:
+        for condition in rules[drug_lower]:
+            if condition in conditions:
+                warnings.append(f"⚠️ Drug-Condition Alert: Taking '{new_drug.title()}' with a history of '{condition.title()}' can be risky.")
+    return warnings
+
+# --- USER AUTHENTICATION & PROFILE (Unchanged) ---
+@app.route('/')
+def home(): return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    session.pop('patient_id', None)
+    if 'patient_id' in session: return redirect(url_for('dashboard'))
     if request.method == 'POST':
-        patient_name = request.form['name'].strip()
+        name = request.form['name']; password = request.form['password']
         conn = get_db_connection()
-        patient = conn.execute('SELECT * FROM patients WHERE name = ?', (patient_name,)).fetchone()
-        if patient:
+        patient = conn.execute('SELECT * FROM patients WHERE name = ?', (name,)).fetchone()
+        conn.close()
+        if patient and check_password_hash(patient['password_hash'], password):
             session['patient_id'] = patient['id']
             return redirect(url_for('dashboard'))
         else:
-            cursor = conn.cursor()
-            cursor.execute('INSERT INTO patients (name) VALUES (?)', (patient_name,))
-            conn.commit()
-            new_patient = conn.execute('SELECT * FROM patients WHERE name = ?', (patient_name,)).fetchone()
-            session['patient_id'] = new_patient['id']
-            flash("Welcome! Let's set up your health profile.", "info")
-            return redirect(url_for('profile'))
+            flash("Invalid username or password.", "warning")
     return render_template('index.html', page='login')
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form['name']; password = request.form['password']
+        conn = get_db_connection()
+        if conn.execute('SELECT id FROM patients WHERE name = ?', (name,)).fetchone():
+            flash("A patient with this name already exists.", "warning"); conn.close(); return redirect(url_for('register'))
+        password_hash = generate_password_hash(password)
+        cursor = conn.cursor(); cursor.execute('INSERT INTO patients (name, password_hash) VALUES (?, ?)', (name, password_hash)); conn.commit()
+        new_patient = conn.execute('SELECT * FROM patients WHERE name = ?', (name,)).fetchone(); conn.close()
+        session['patient_id'] = new_patient['id']
+        flash("Registration successful! Please complete your health profile.", "info")
+        return redirect(url_for('profile'))
+    return render_template('index.html', page='register')
+
+# --- MAIN DASHBOARD & LOGIC ---
 @app.route('/dashboard')
 def dashboard():
     if 'patient_id' not in session: return redirect(url_for('login'))
@@ -118,76 +127,102 @@ def profile():
     if 'patient_id' not in session: return redirect(url_for('login'))
     conn = get_db_connection()
     if request.method == 'POST':
-        conn.execute('''
-            UPDATE patients SET age = ?, gender = ?, weight_kg = ?, conditions = ?, allergies = ? WHERE id = ?
-        ''', (request.form['age'], request.form['gender'], request.form['weight_kg'], 
-              request.form['conditions'], request.form['allergies'], session['patient_id']))
-        conn.commit()
-        conn.close()
+        conn.execute('UPDATE patients SET age=?, gender=?, weight_kg=?, conditions=?, allergies=? WHERE id=?',
+                     (request.form['age'], request.form['gender'], request.form['weight_kg'], 
+                      request.form['conditions'], request.form['allergies'], session['patient_id']))
+        conn.commit(); conn.close()
         flash("Profile updated successfully!", "success")
         return redirect(url_for('dashboard'))
     patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
     conn.close()
     return render_template('index.html', page='profile', patient=patient)
 
-# --- MEDICATION MANAGEMENT (Unchanged - Still uses rule-based alerts) ---
+# --- HOLISTIC CHECKING LOGIC ---
+def get_holistic_context(new_drug, patient, existing_meds):
+    """Builds a complete context string for the AI to analyze."""
+    context_str = f"Patient Profile: Name: {patient['name']}, Age: {patient['age']}, Conditions: {patient['conditions']}, Allergies: {patient['allergies']}.\n"
+    context_str += f"Current Medications: {', '.join([med['drug_name'] for med in existing_meds]) if existing_meds else 'None'}.\n"
+    context_str += f"New Drug to Analyze: {new_drug}.\n\n"
+    context_str += "Known Pairwise Interactions from Database:\n"
+    
+    found_pairwise = False
+    all_drugs = [med['drug_name'] for med in existing_meds] + [new_drug]
+    # Check new drug against all existing ones
+    for med in existing_meds:
+        interaction = rag_system.search_interaction(new_drug, med['drug_name'])
+        if interaction:
+            found_pairwise = True
+            context_str += f"- {interaction['drug_a']} and {interaction['drug_b']} ({interaction['severity']}): {interaction['interaction']}\n"
+            
+    if not found_pairwise:
+        context_str += "- No specific pairwise interactions were found in the knowledge base for the new drug.\n"
+        
+    return context_str
+
+@app.route('/check_before_adding', methods=['POST'])
+def check_before_adding():
+    if 'patient_id' not in session: return jsonify({'error': 'User not logged in'}), 401
+    
+    new_drug = request.json['drug_name']
+    conn = get_db_connection()
+    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+    existing_meds = conn.execute('SELECT drug_name FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
+    conn.close()
+    
+    # Generate the complete context for the AI
+    holistic_context = get_holistic_context(new_drug, patient, existing_meds)
+    
+    # Get the AI's final analysis
+    ai_summary = ask_local_llm(holistic_context)
+
+    # Determine if the drug can be added based on the AI's mandatory verdict
+    summary_lines = ai_summary.split('\n')
+    verdict = summary_lines[-1]
+    can_add = "SAFE TO ADD" in verdict
+    
+    # We send the main summary (without the verdict line) to the UI
+    main_summary = "\n".join(summary_lines[:-1])
+
+    return jsonify({'summary': main_summary, 'can_add': can_add})
+
 @app.route('/add_medication', methods=['POST'])
 def add_medication():
     if 'patient_id' not in session: return redirect(url_for('login'))
-    new_drug = request.form['drug_name']
-    # The rule-based checks are still here for instant feedback when adding meds
-    # The AI is for conversational follow-up questions
+    new_drug = request.form['drug_name']; dosage = request.form['dosage']
     conn = get_db_connection()
-    # (Existing logic for checking interactions and contraindications would go here)
-    conn.execute('INSERT INTO medications (patient_id, drug_name, dosage) VALUES (?, ?, ?)',
-                 (session['patient_id'], new_drug, request.form['dosage']))
-    conn.commit()
-    conn.close()
+    conn.execute('INSERT INTO medications (patient_id, drug_name, dosage) VALUES (?, ?, ?)', (session['patient_id'], new_drug, dosage))
+    conn.commit(); conn.close()
     flash(f"'{new_drug.title()}' has been added to your log.", "success")
-    # (Flash warnings based on rules here)
     return redirect(url_for('dashboard'))
 
-# --- NEW: AI ASSISTANT ROUTE ---
+# --- CORRECTED AI ASSISTANT LOGIC ---
 @app.route('/ask_assistant', methods=['POST'])
 def ask_assistant():
-    """Handles conversational queries using RAG and the local LLM."""
     if 'patient_id' not in session: return redirect(url_for('login'))
     
     question = request.form['question']
-    
-    # 1. Gather Context
     conn = get_db_connection()
     patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
-    meds = conn.execute('SELECT drug_name FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
+    existing_meds = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
     conn.close()
 
-    # Create a text-based context for the AI
-    context_str = f"Patient Profile:\nName: {patient['name']}\nAge: {patient['age']}\nConditions: {patient['conditions']}\nAllergies: {patient['allergies']}\n"
-    current_meds = [med['drug_name'] for med in meds]
-    if current_meds:
-        context_str += f"Currently taking: {', '.join(current_meds)}\n\n"
+    # Build the complete context for the AI, now using the holistic function
+    holistic_context = get_holistic_context(question, patient, existing_meds) # Reuse the logic
     
-    # 2. RAG Search
-    rag_result = rag_system.search(question)
-    if rag_result:
-        context_str += f"Relevant information from knowledge base:\n{rag_result['interaction']}"
-    
-    # 3. Ask the LLM
-    ai_response = ask_local_llm(context_str, question)
-    
-    # Re-render the dashboard with the AI's response
+    # The AI will now get the full picture for any question
+    ai_response = ask_local_llm(holistic_context)
+
+    # Re-render the dashboard
     conn = get_db_connection()
     patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
     medications = conn.execute('SELECT * FROM medications WHERE patient_id = ? ORDER BY drug_name', (session['patient_id'],)).fetchall()
     conn.close()
-
-    return render_template('index.html', page='dashboard', patient=patient, medications=medications, ai_response=ai_response)
+    return render_template('index.html', page='dashboard', patient=patient, medications=medications, ai_response=ai_response.split('\nVerdict:')[0])
 
 @app.route('/logout')
 def logout():
-    session.pop('patient_id', None)
-    flash("You have been logged out.", "info")
-    return redirect(url_for('login'))
+    session.pop('patient_id', None); flash("You have been logged out.", "info"); return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True)
+

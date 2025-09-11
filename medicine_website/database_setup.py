@@ -1,23 +1,22 @@
 import sqlite3
 
-# Connect to the database file (it will be created if it doesn't exist)
 conn = sqlite3.connect('medicine_log.db')
 cursor = conn.cursor()
 
-print("Database connected. Resetting tables for the new application structure...")
+print("Database connected. Resetting tables for secure authentication...")
 
-# --- IMPORTANT CHANGE ---
-# Drop existing tables first to ensure a clean slate.
-# This prevents errors if you run the script multiple times or have an old DB structure.
+# Drop existing tables to ensure a clean slate with the new password column
 cursor.execute('DROP TABLE IF EXISTS medications;')
 cursor.execute('DROP TABLE IF EXISTS patients;')
-print("Old tables, if any, have been removed.")
+print("Old tables dropped.")
 
-# Create the new 'patients' table with the detailed profile schema
+# Create the 'patients' table with a new 'password_hash' column
+# This column will store the secure hash, not the plain-text password.
 cursor.execute('''
 CREATE TABLE patients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
     age INTEGER,
     gender TEXT,
     weight_kg REAL,
@@ -25,9 +24,9 @@ CREATE TABLE patients (
     allergies TEXT
 );
 ''')
-print("Table 'patients' created successfully.")
+print("Table 'patients' created with secure password field.")
 
-# Create the 'medications' table
+# Recreate the 'medications' table
 cursor.execute('''
 CREATE TABLE medications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,10 +36,10 @@ CREATE TABLE medications (
     FOREIGN KEY (patient_id) REFERENCES patients (id)
 );
 ''')
-print("Table 'medications' created successfully.")
+print("Table 'medications' created.")
 
 conn.commit()
 conn.close()
 
-print("\nDatabase setup complete. The 'medicine_log.db' file is fresh and ready.")
+print("\nDatabase setup complete. The database is now ready for secure logins.")
 

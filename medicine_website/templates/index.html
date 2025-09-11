@@ -5,37 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Personalized Medicine Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* A little extra style for a polished look */
-        body { font-family: 'Inter', sans-serif; }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    <style> 
+        body { font-family: 'Inter', sans-serif; } 
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'); 
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
 
     <div class="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
 
-        <!-- Header -->
         <header class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold text-slate-700">Medicine Assistant</h1>
-            {% if page != 'login' %}
+            {% if 'patient_id' in session %}
             <a href="{{ url_for('logout') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Logout</a>
             {% endif %}
         </header>
 
-        <!-- Flash Messages / Alerts -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             <div class="mb-6 space-y-3">
             {% for category, message in messages %}
               {% set colors = {
-                'success': 'bg-green-100 border-green-400 text-green-700',
-                'warning': 'bg-yellow-100 border-yellow-400 text-yellow-700',
-                'info': 'bg-blue-100 border-blue-400 text-blue-700'
+                'success': 'bg-green-100 border-green-400 text-green-700', 
+                'warning': 'bg-yellow-100 border-yellow-400 text-yellow-700', 
+                'info': 'bg-blue-100 border-blue-400 text-blue-700',
+                'danger': 'bg-red-100 border-red-400 text-red-700'
               } %}
-              <div class="p-4 border-l-4 rounded {{ colors.get(category, 'bg-gray-100 border-gray-400 text-gray-700') }}" role="alert">
+              <div class="p-4 border-l-4 rounded {{ colors.get(category, 'bg-gray-100') }}" role="alert">
                 <p class="font-bold">
-                    {% if category == 'success' %}Success{% elif category == 'warning' %}Alert{% else %}Notice{% endif %}
+                    {% if category == 'success' %}Success{% elif category == 'warning' %}Alert{% elif category == 'danger' %}CRITICAL RISK{% else %}Notice{% endif %}
                 </p>
                 <p>{{ message }}</p>
               </div>
@@ -48,18 +46,75 @@
         
         <!-- LOGIN PAGE -->
         {% if page == 'login' %}
-        <div class="bg-white p-8 rounded-lg shadow-md">
-            <h2 class="text-2xl font-semibold mb-4 text-center">Login or Create Profile</h2>
-            <p class="text-center text-slate-500 mb-6">Enter your name to begin. If the profile doesn't exist, we'll create a new one for you.</p>
+        <div class="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto">
+            <h2 class="text-2xl font-semibold mb-4 text-center">Patient Login</h2>
             <form action="{{ url_for('login') }}" method="post" class="space-y-4">
-                <div>
-                    <label for="name" class="block text-sm font-medium text-slate-600">Patient Name</label>
-                    <input type="text" name="name" id="name" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Mr. Kumar" required>
-                </div>
-                <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Login / Register
-                </button>
+                <div><label for="name" class="block text-sm font-medium">Patient Name</label><input type="text" name="name" id="name" class="mt-1 block w-full px-3 py-2 border rounded-md" required></div>
+                <div><label for="password" class="block text-sm font-medium">Password</label><input type="password" name="password" id="password" class="mt-1 block w-full px-3 py-2 border rounded-md" required></div>
+                <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Login</button>
             </form>
+            <p class="text-center text-sm text-slate-500 mt-6">New patient? <a href="{{ url_for('register') }}" class="font-medium text-blue-600 hover:text-blue-800">Create a profile</a></p>
+        </div>
+        {% endif %}
+
+        <!-- REGISTRATION PAGE -->
+        {% if page == 'register' %}
+        <div class="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto">
+            <h2 class="text-2xl font-semibold mb-4 text-center">Create New Patient Profile</h2>
+            <form action="{{ url_for('register') }}" method="post" class="space-y-4">
+                <div><label for="name" class="block text-sm font-medium">Patient Name</label><input type="text" name="name" id="name" class="mt-1 block w-full px-3 py-2 border rounded-md" required></div>
+                <div><label for="password" class="block text-sm font-medium">Password</label><input type="password" name="password" id="password" class="mt-1 block w-full px-3 py-2 border rounded-md" required></div>
+                <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Register</button>
+            </form>
+            <p class="text-center text-sm text-slate-500 mt-6">Already have a profile? <a href="{{ url_for('login') }}" class="font-medium text-blue-600 hover:text-blue-800">Login here</a></p>
+        </div>
+        {% endif %}
+        
+        <!-- DASHBOARD PAGE -->
+        {% if page == 'dashboard' %}
+        <div class="space-y-8">
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 class="text-2xl font-semibold">{{ patient.name }}'s Dashboard</h2>
+                        <p class="text-slate-500">{{ patient.age or 'N/A' }} years old | {{ patient.gender or 'N/A' }} | {{ patient.weight_kg or 'N/A' }} kg</p>
+                        <p class="text-sm mt-2"><strong>Conditions:</strong> {{ patient.conditions or 'None specified' }}</p>
+                        <p class="text-sm"><strong>Allergies:</strong> {{ patient.allergies or 'None specified' }}</p>
+                    </div>
+                    <a href="{{ url_for('profile') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Edit Profile</a>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold mb-4">AI Assistant</h3>
+                <form action="{{ url_for('ask_assistant') }}" method="post">
+                    <div class="flex items-center space-x-4">
+                        <input type="text" name="question" class="flex-grow w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="Ask a question, e.g., 'Can I take Aspirin?'" required>
+                        <button type="submit" class="py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Ask</button>
+                    </div>
+                </form>
+                {% if ai_response %}
+                <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
+                    <p class="text-slate-700"><strong class="font-semibold">Assistant:</strong> {{ ai_response | safe }}</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                 <h3 class="text-xl font-semibold mb-4">Add New Medication</h3>
+                <form id="add-med-form" action="{{ url_for('add_medication') }}" method="post" class="flex items-end space-x-4 mb-6">
+                    <div class="flex-grow"><label class="block text-sm font-medium">Drug Name</label><input type="text" id="drug_name_input" name="drug_name" class="mt-1 w-full px-3 py-2 border rounded-md" required></div>
+                    <div class="flex-grow"><label class="block text-sm font-medium">Dosage</label><input type="text" name="dosage" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
+                    <button type="button" id="check-med-button" class="py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Check</button>
+                </form>
+
+                <!-- NEW: Interactive Pre-check Assistant -->
+                <div id="pre-check-assistant" class="hidden mt-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
+                    <p id="assistant-summary" class="text-slate-700"></p>
+                    <div id="confirmation-buttons" class="mt-4 space-x-4"></div>
+                </div>
+
+                <h3 class="text-xl font-semibold mb-4 border-t pt-6">Current Medication Log</h3>
+                {% if medications %}<ul class="divide-y divide-slate-200">{% for med in medications %}<li class="py-3 flex justify-between items-center"><p class="font-medium">{{ med.drug_name }}</p><p class="text-slate-500">{{ med.dosage }}</p></li>{% endfor %}</ul>{% else %}<p class="text-slate-500">No medications logged yet.</p>{% endif %}
+            </div>
         </div>
         {% endif %}
 
@@ -67,115 +122,76 @@
         {% if page == 'profile' %}
         <div class="bg-white p-8 rounded-lg shadow-md">
             <h2 class="text-2xl font-semibold mb-4">Set Up Your Health Profile</h2>
-            <p class="text-slate-500 mb-6">This information helps provide personalized alerts. You can update it anytime.</p>
             <form action="{{ url_for('profile') }}" method="post" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium">Age</label>
-                        <input type="number" name="age" value="{{ patient.age or '' }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., 55">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium">Gender</label>
-                        <select name="gender" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md">
-                            <option value="" {% if not patient.gender %}selected{% endif %}>Select...</option>
-                            <option value="Male" {% if patient.gender == 'Male' %}selected{% endif %}>Male</option>
-                            <option value="Female" {% if patient.gender == 'Female' %}selected{% endif %}>Female</option>
-                            <option value="Other" {% if patient.gender == 'Other' %}selected{% endif %}>Other</option>
-                        </select>
-                    </div>
+                    <div><label class="block text-sm font-medium">Age</label><input type="number" name="age" value="{{ patient.age or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
+                    <div><label class="block text-sm font-medium">Gender</label><select name="gender" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="" {% if not patient.gender %}selected{% endif %}>Select...</option><option value="Male" {% if patient.gender == 'Male' %}selected{% endif %}>Male</option><option value="Female" {% if patient.gender == 'Female' %}selected{% endif %}>Female</option><option value="Other" {% if patient.gender == 'Other' %}selected{% endif %}>Other</option></select></div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium">Weight (in kg)</label>
-                    <input type="number" step="0.1" name="weight_kg" value="{{ patient.weight_kg or '' }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., 70.5">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium">Medical Conditions</label>
-                    <input type="text" name="conditions" value="{{ patient.conditions or '' }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Diabetes, High Blood Pressure (comma separated)">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium">Drug Allergies</label>
-                    <input type="text" name="allergies" value="{{ patient.allergies or '' }}" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Penicillin, Ibuprofen (comma separated)">
-                </div>
-                <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">
-                    Save Profile
-                </button>
+                <div><label class="block text-sm font-medium">Weight (in kg)</label><input type="number" step="0.1" name="weight_kg" value="{{ patient.weight_kg or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
+                <div><label class="block text-sm font-medium">Medical Conditions</label><input type="text" name="conditions" value="{{ patient.conditions or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Diabetes, High Blood Pressure"></div>
+                <div><label class="block text-sm font-medium">Drug Allergies</label><input type="text" name="allergies" value="{{ patient.allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Penicillin, Ibuprofen"></div>
+                <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Save Profile</button>
             </form>
         </div>
         {% endif %}
-        
-        <!-- DASHBOARD PAGE -->
-        {% if page == 'dashboard' %}
-        <div class="space-y-8">
-            <!-- Patient Profile Summary -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h2 class="text-2xl font-semibold">{{ patient.name }}'s Dashboard</h2>
-                        <p class="text-slate-500">
-                            {{ patient.age or 'N/A' }} years old | {{ patient.gender or 'N/A' }} | {{ patient.weight_kg or 'N/A' }} kg
-                        </p>
-                        <p class="text-sm mt-2"><strong>Conditions:</strong> {{ patient.conditions or 'None specified' }}</p>
-                        <p class="text-sm"><strong>Allergies:</strong> {{ patient.allergies or 'None specified' }}</p>
-                    </div>
-                    <a href="{{ url_for('profile') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800">Edit Profile</a>
-                </div>
-            </div>
-
-            <!-- NEW: AI Assistant -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h3 class="text-xl font-semibold mb-4">🤖 AI Assistant</h3>
-                <p class="text-slate-500 mb-4">Ask a question about your health or medications below.</p>
-                <form action="{{ url_for('ask_assistant') }}" method="post">
-                    <div class="flex items-center space-x-2">
-                        <input type="text" name="question" class="flex-grow w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Is it safe to take Aspirin?" required>
-                        <button type="submit" class="py-2 px-4 rounded-md font-medium text-white bg-slate-600 hover:bg-slate-700">Ask</button>
-                    </div>
-                </form>
-                {% if ai_response %}
-                <div class="mt-4 p-4 bg-slate-100 border border-slate-200 rounded-md">
-                    <p class="text-slate-800">{{ ai_response }}</p>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Add Medication Form -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h3 class="text-xl font-semibold mb-4">Add New Medication</h3>
-                <form action="{{ url_for('add_medication') }}" method="post" class="flex items-end space-x-4">
-                    <div class="flex-grow">
-                        <label class="block text-sm font-medium">Drug Name</label>
-                        <input type="text" name="drug_name" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., Metformin" required>
-                    </div>
-                    <div class="flex-grow">
-                        <label class="block text-sm font-medium">Dosage</label>
-                        <input type="text" name="dosage" class="mt-1 w-full px-3 py-2 border border-slate-300 rounded-md" placeholder="e.g., 500mg daily">
-                    </div>
-                    <button type="submit" class="py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">
-                        Add & Check
-                    </button>
-                </form>
-            </div>
-
-            <!-- Current Medication List -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h3 class="text-xl font-semibold mb-4">Current Medication Log</h3>
-                {% if medications %}
-                <ul class="divide-y divide-slate-200">
-                    {% for med in medications %}
-                    <li class="py-3 flex justify-between items-center">
-                        <p class="font-medium">{{ med.drug_name }}</p>
-                        <p class="text-slate-500">{{ med.dosage }}</p>
-                    </li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <p class="text-slate-500">No medications have been logged yet.</p>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-
     </div>
+
+    <!-- NEW: JavaScript for Interactive Pre-check -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkButton = document.getElementById('check-med-button');
+            const medForm = document.getElementById('add-med-form');
+            const drugNameInput = document.getElementById('drug_name_input');
+            
+            const assistantArea = document.getElementById('pre-check-assistant');
+            const summaryText = document.getElementById('assistant-summary');
+            const confirmButtons = document.getElementById('confirmation-buttons');
+
+            if (checkButton) {
+                checkButton.addEventListener('click', async function() {
+                    const drugName = drugNameInput.value.trim();
+                    if (!drugName) {
+                        alert('Please enter a drug name to check.');
+                        return;
+                    }
+
+                    assistantArea.classList.remove('hidden');
+                    summaryText.textContent = 'Assistant is checking, one moment...';
+                    confirmButtons.innerHTML = '';
+
+                    try {
+                        const response = await fetch('/check_before_adding', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ drug_name: drugName }),
+                        });
+
+                        if (!response.ok) throw new Error('Server error');
+
+                        const data = await response.json();
+                        
+                        summaryText.innerHTML = `<strong>Assistant:</strong> ${data.summary.replace(/\n/g, '<br>')}`;
+
+                        const cancelButton = document.createElement('button');
+                        cancelButton.textContent = 'Cancel';
+                        cancelButton.className = 'py-2 px-4 rounded-md font-medium text-slate-600 bg-slate-200 hover:bg-slate-300';
+                        cancelButton.onclick = () => { assistantArea.classList.add('hidden'); drugNameInput.value = ''; };
+                        confirmButtons.appendChild(cancelButton);
+
+                        if (data.can_add) {
+                            const confirmButton = document.createElement('button');
+                            confirmButton.textContent = 'Confirm & Add to Log';
+                            confirmButton.className = 'py-2 px-4 rounded-md font-medium text-white bg-green-600 hover:bg-green-700';
+                            confirmButton.onclick = () => { medForm.submit(); };
+                            confirmButtons.appendChild(confirmButton);
+                        }
+                    } catch (error) {
+                        summaryText.textContent = 'Could not perform the check. Please try again.';
+                    }
+                });
+            }
+        });
+    </script>
 
 </body>
 </html>
