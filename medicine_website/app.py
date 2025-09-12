@@ -5,6 +5,7 @@ import requests
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
+from datetime import date
 
 app = Flask(__name__)
 app.secret_key = 'the_final_and_most_secure_key' 
@@ -37,19 +38,28 @@ rag_system = RAGSystem('interactions.csv')
 def get_db_connection():
     conn = sqlite3.connect('medicine_log.db'); conn.row_factory = sqlite3.Row; return conn
 
+def calculate_age(dob_str):
+    if not dob_str: return None
+    try:
+        birth_date = date.fromisoformat(dob_str)
+        today = date.today()
+        return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+    except (ValueError, TypeError):
+        return None
+
 # --- AI & Safety Check Logic ---
 def ask_local_llm(context):
-    prompt = f"""You are an expert clinical pharmacologist AI. Your persona is that of a knowledgeable, caring, and direct friend who prioritizes the user's safety above all else. Analyze the complete [CONTEXT] provided and generate a response based on the [INSTRUCTIONS].
+    prompt = f"""You are an expert clinical pharmacologist AI. Your persona is that of a knowledgeable, caring, and direct friend. Analyze the complete [CONTEXT] provided and generate a response based on the [INSTRUCTIONS].
 
     [CONTEXT]
     {context}
 
     [INSTRUCTIONS]
-    1.  **Adopt a Persona:** Speak directly to the patient by name. Your tone should be warm and personal, but become very firm and clear when a serious risk is detected.
+    1.  **Adopt a Persona:** Speak directly to the patient by name. Be warm and personal, but become very firm when a serious risk is detected.
     2.  **Analyze Holistically:** This is your most important task. Review all the information provided: the patient's profile, their **entire list of current medications**, and the new drug they are asking about. Look for not just pairwise (A+B) interactions, but also potential multi-drug (A+B+C) interactions based on your internal knowledge.
     3.  **Synthesize Findings:** Generate a single, easy-to-understand summary.
         * **If any CRITICAL or HIGH RISK is found:** State it clearly and directly. Explain the risk in simple terms. **Example:** "Hi Ganesh, I've looked at your full medication list and this is a major concern. Taking an NSAID while you are on both Warfarin and Methotrexate significantly increases the risk of severe side effects. Please do not take this. It's really important to talk to your doctor about a safer alternative."
-        * **If MODERATE risks are found:** Explain them simply. **Example:** "Okay Ganesh, I see you're taking an ACE inhibitor and you want to add a potassium supplement. Taking these together can sometimes raise your potassium levels too high. I'd really recommend talking to your doctor about this first."
+        * **If MODERATE risks are found:** Explain them simply. **Example:** "Okay Ganesh, let's look at this. Taking an ACE inhibitor and you want to add a potassium supplement. Taking these together can sometimes raise your potassium levels too high. I'd really recommend talking to your doctor about this first."
         * **If everything is SAFE:** Be reassuring. **Example:** "Hi Ganesh, I've checked Metformin against your profile and all your other medications, and everything looks safe. It's great that you're being so careful!"
     4.  **Final Verdict:** End your response with a clear, one-line verdict on a new line: "Verdict: SAFE TO ADD" or "Verdict: DO NOT ADD". This is mandatory.
     """
@@ -63,22 +73,7 @@ def ask_local_llm(context):
     except requests.exceptions.RequestException:
         return "I am unable to connect to the AI assistant. Please ensure LM Studio is running.\nVerdict: DO NOT ADD"
 
-def get_personalized_warnings(new_drug, patient):
-    """Generates warnings based on the patient's specific profile (allergies, conditions)."""
-    warnings = []
-    drug_lower = new_drug.lower().strip()
-    conditions = patient['conditions'].lower() if patient['conditions'] else ""
-    allergies = patient['allergies'].lower() if patient['allergies'] else ""
-    if allergies and any(allergy.strip() in drug_lower for allergy in allergies.split(',')):
-        warnings.append(f"🚨 Allergy Alert: Profile indicates an allergy to '{new_drug.title()}'.")
-    rules = {'ibuprofen': ['diabetes', 'kidney disease', 'high blood pressure'], 'aspirin': ['stomach ulcers', 'bleeding disorder']}
-    if drug_lower in rules:
-        for condition in rules[drug_lower]:
-            if condition in conditions:
-                warnings.append(f"⚠️ Drug-Condition Alert: Taking '{new_drug.title()}' with a history of '{condition.title()}' can be risky.")
-    return warnings
-
-# --- USER AUTHENTICATION & PROFILE (Unchanged) ---
+# --- USER AUTHENTICATION & PROFILE ---
 @app.route('/')
 def home(): return redirect(url_for('login'))
 
@@ -108,7 +103,7 @@ def register():
         cursor = conn.cursor(); cursor.execute('INSERT INTO patients (name, password_hash) VALUES (?, ?)', (name, password_hash)); conn.commit()
         new_patient = conn.execute('SELECT * FROM patients WHERE name = ?', (name,)).fetchone(); conn.close()
         session['patient_id'] = new_patient['id']
-        flash("Registration successful! Please complete your health profile.", "info")
+        flash("Registration successful! Please complete your comprehensive health profile.", "info")
         return redirect(url_for('profile'))
     return render_template('index.html', page='register')
 
@@ -117,7 +112,11 @@ def register():
 def dashboard():
     if 'patient_id' not in session: return redirect(url_for('login'))
     conn = get_db_connection()
-    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+    patient_data = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+    # Convert Row object to a mutable dictionary
+    patient = dict(patient_data)
+    patient['age'] = calculate_age(patient.get('dob')) # .get() works here because it's a dict
+    
     medications = conn.execute('SELECT * FROM medications WHERE patient_id = ? ORDER BY drug_name', (session['patient_id'],)).fetchall()
     conn.close()
     return render_template('index.html', page='dashboard', patient=patient, medications=medications)
@@ -127,12 +126,22 @@ def profile():
     if 'patient_id' not in session: return redirect(url_for('login'))
     conn = get_db_connection()
     if request.method == 'POST':
-        conn.execute('UPDATE patients SET age=?, gender=?, weight_kg=?, conditions=?, allergies=? WHERE id=?',
-                     (request.form['age'], request.form['gender'], request.form['weight_kg'], 
-                      request.form['conditions'], request.form['allergies'], session['patient_id']))
+        # Collect all form data
+        form_data = (
+            request.form['dob'], request.form['gender'], request.form['weight_kg'], request.form['height_cm'],
+            request.form['emergency_contact'], request.form['conditions'], request.form['drug_allergies'],
+            request.form['food_allergies'], request.form['other_allergies'], request.form['is_smoker'],
+            request.form['alcohol_consumption'], session['patient_id']
+        )
+        conn.execute('''
+            UPDATE patients SET dob=?, gender=?, weight_kg=?, height_cm=?, emergency_contact=?, 
+            conditions=?, drug_allergies=?, food_allergies=?, other_allergies=?, is_smoker=?, 
+            alcohol_consumption=? WHERE id=?
+        ''', form_data)
         conn.commit(); conn.close()
         flash("Profile updated successfully!", "success")
         return redirect(url_for('dashboard'))
+        
     patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
     conn.close()
     return render_template('index.html', page='profile', patient=patient)
@@ -140,14 +149,18 @@ def profile():
 # --- HOLISTIC CHECKING LOGIC ---
 def get_holistic_context(new_drug, patient, existing_meds):
     """Builds a complete context string for the AI to analyze."""
-    context_str = f"Patient Profile: Name: {patient['name']}, Age: {patient['age']}, Conditions: {patient['conditions']}, Allergies: {patient['allergies']}.\n"
+    # --- THIS IS THE FIX ---
+    # Access sqlite3.Row objects using dictionary-style keys, not the .get() method.
+    patient_age = calculate_age(patient['dob'])
+    context_str = f"Patient Profile: Name: {patient['name']}, Age: {patient_age}, Gender: {patient['gender']}, Weight: {patient['weight_kg']}kg, Height: {patient['height_cm']}cm.\n"
+    context_str += f"Lifestyle: Smoker: {patient['is_smoker']}, Alcohol: {patient['alcohol_consumption']}.\n"
+    context_str += f"Conditions: {patient['conditions']}.\n"
+    context_str += f"Allergies: Drug: {patient['drug_allergies']}, Food: {patient['food_allergies']}, Other: {patient['other_allergies']}.\n"
     context_str += f"Current Medications: {', '.join([med['drug_name'] for med in existing_meds]) if existing_meds else 'None'}.\n"
     context_str += f"New Drug to Analyze: {new_drug}.\n\n"
     context_str += "Known Pairwise Interactions from Database:\n"
     
     found_pairwise = False
-    all_drugs = [med['drug_name'] for med in existing_meds] + [new_drug]
-    # Check new drug against all existing ones
     for med in existing_meds:
         interaction = rag_system.search_interaction(new_drug, med['drug_name'])
         if interaction:
@@ -155,7 +168,7 @@ def get_holistic_context(new_drug, patient, existing_meds):
             context_str += f"- {interaction['drug_a']} and {interaction['drug_b']} ({interaction['severity']}): {interaction['interaction']}\n"
             
     if not found_pairwise:
-        context_str += "- No specific pairwise interactions were found in the knowledge base for the new drug.\n"
+        context_str += "- No specific pairwise interactions were found in the knowledge base for the new drug against the current log.\n"
         
     return context_str
 
@@ -169,18 +182,12 @@ def check_before_adding():
     existing_meds = conn.execute('SELECT drug_name FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
     conn.close()
     
-    # Generate the complete context for the AI
     holistic_context = get_holistic_context(new_drug, patient, existing_meds)
-    
-    # Get the AI's final analysis
     ai_summary = ask_local_llm(holistic_context)
 
-    # Determine if the drug can be added based on the AI's mandatory verdict
     summary_lines = ai_summary.split('\n')
     verdict = summary_lines[-1]
     can_add = "SAFE TO ADD" in verdict
-    
-    # We send the main summary (without the verdict line) to the UI
     main_summary = "\n".join(summary_lines[:-1])
 
     return jsonify({'summary': main_summary, 'can_add': can_add})
@@ -195,7 +202,6 @@ def add_medication():
     flash(f"'{new_drug.title()}' has been added to your log.", "success")
     return redirect(url_for('dashboard'))
 
-# --- CORRECTED AI ASSISTANT LOGIC ---
 @app.route('/ask_assistant', methods=['POST'])
 def ask_assistant():
     if 'patient_id' not in session: return redirect(url_for('login'))
@@ -204,20 +210,18 @@ def ask_assistant():
     conn = get_db_connection()
     patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
     existing_meds = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
-    conn.close()
-
-    # Build the complete context for the AI, now using the holistic function
-    holistic_context = get_holistic_context(question, patient, existing_meds) # Reuse the logic
     
-    # The AI will now get the full picture for any question
+    # Pass the raw sqlite3.Row object directly to the context function
+    holistic_context = get_holistic_context(question, patient, existing_meds)
     ai_response = ask_local_llm(holistic_context)
 
-    # Re-render the dashboard
-    conn = get_db_connection()
-    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+    # Re-fetch and convert to dict for the template
+    patient_data = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+    patient_dict = dict(patient_data)
+    patient_dict['age'] = calculate_age(patient_dict.get('dob'))
     medications = conn.execute('SELECT * FROM medications WHERE patient_id = ? ORDER BY drug_name', (session['patient_id'],)).fetchall()
     conn.close()
-    return render_template('index.html', page='dashboard', patient=patient, medications=medications, ai_response=ai_response.split('\nVerdict:')[0])
+    return render_template('index.html', page='dashboard', patient=patient_dict, medications=medications, ai_response=ai_response.split('\nVerdict:')[0])
 
 @app.route('/logout')
 def logout():
