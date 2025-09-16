@@ -12,7 +12,7 @@
 </head>
 <body class="bg-slate-50 text-slate-800">
 
-    <div class="container mx-auto max-w-4xl p-4 sm:p-6 lg:p-8">
+    <div class="container mx-auto max-w-5xl p-4 sm:p-6 lg:p-8">
 
         <header class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold text-slate-700">Medicine Assistant</h1>
@@ -37,30 +37,22 @@
 
         <!-- DYNAMIC CONTENT AREA -->
         
-        <!-- LOGIN & REGISTER PAGES (Unchanged) -->
         {% if page == 'login' or page == 'register' %}
             <div class="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto">
-                <h2 class="text-2xl font-semibold mb-4 text-center">
-                    {% if page == 'login' %}Patient Login{% else %}Create New Patient Profile{% endif %}
-                </h2>
+                <h2 class="text-2xl font-semibold mb-4 text-center">{% if page == 'login' %}Patient Login{% else %}Create New Patient Profile{% endif %}</h2>
                 <form action="{{ url_for(page) }}" method="post" class="space-y-4">
                     <div><label for="name" class="block text-sm font-medium">Patient Name</label><input type="text" name="name" id="name" class="mt-1 block w-full px-3 py-2 border rounded-md" required></div>
                     <div><label for="password" class="block text-sm font-medium">Password</label><input type="password" name="password" id="password" class="mt-1 block w-full px-3 py-2 border rounded-md" required></div>
-                    <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">
-                        {% if page == 'login' %}Login{% else %}Register{% endif %}
-                    </button>
+                    <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">{% if page == 'login' %}Login{% else %}Register{% endif %}</button>
                 </form>
                 <p class="text-center text-sm text-slate-500 mt-6">
-                    {% if page == 'login' %}
-                        New patient? <a href="{{ url_for('register') }}" class="font-medium text-blue-600 hover:text-blue-800">Create a profile</a>
-                    {% else %}
-                        Already have a profile? <a href="{{ url_for('login') }}" class="font-medium text-blue-600 hover:text-blue-800">Login here</a>
+                    {% if page == 'login' %}New patient? <a href="{{ url_for('register') }}" class="font-medium text-blue-600 hover:text-blue-800">Create a profile</a>
+                    {% else %}Already have a profile? <a href="{{ url_for('login') }}" class="font-medium text-blue-600 hover:text-blue-800">Login here</a>
                     {% endif %}
                 </p>
             </div>
         {% endif %}
         
-        <!-- DASHBOARD PAGE -->
         {% if page == 'dashboard' %}
         <div class="space-y-8">
             <div class="bg-white p-6 rounded-lg shadow-md">
@@ -68,17 +60,10 @@
                     <div>
                         <h2 class="text-2xl font-semibold">{{ patient.name }}'s Dashboard</h2>
                         <div class="mt-2 text-slate-500 grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1 text-sm">
-                            <span><strong>Age:</strong> {{ patient.age or 'N/A' }}</span>
-                            <span><strong>Gender:</strong> {{ patient.gender or 'N/A' }}</span>
-                            <span><strong>Weight:</strong> {{ patient.weight_kg or 'N/A' }} kg</span>
-                            <span><strong>Height:</strong> {{ patient.height_cm or 'N/A' }} cm</span>
-                            <span><strong>Smoker:</strong> {{ patient.is_smoker or 'N/A' }}</span>
-                            <span><strong>Alcohol:</strong> {{ patient.alcohol_consumption or 'N/A' }}</span>
+                            <span><strong>Age:</strong> {{ patient.age or 'N/A' }}</span><span><strong>Gender:</strong> {{ patient.gender or 'N/A' }}</span><span><strong>Weight:</strong> {{ patient.weight_kg or 'N/A' }} kg</span>
+                            <span><strong>Height:</strong> {{ patient.height_cm or 'N/A' }} cm</span><span><strong>Smoker:</strong> {{ patient.is_smoker or 'N/A' }}</span><span><strong>Alcohol:</strong> {{ patient.alcohol_consumption or 'N/A' }}</span>
                         </div>
-                        <div class="mt-3 text-sm space-y-1">
-                            <p><strong>Conditions:</strong> <span class="text-slate-500">{{ patient.conditions or 'None specified' }}</span></p>
-                            <p><strong>Drug Allergies:</strong> <span class="text-red-500 font-medium">{{ patient.drug_allergies or 'None specified' }}</span></p>
-                        </div>
+                        <div class="mt-3 text-sm space-y-1"><p><strong>Conditions:</strong> <span class="text-slate-500">{{ patient.conditions or 'None specified' }}</span></p><p><strong>Drug Allergies:</strong> <span class="text-red-500 font-medium">{{ patient.drug_allergies or 'None specified' }}</span></p></div>
                     </div>
                     <a href="{{ url_for('profile') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800 flex-shrink-0 ml-4">Edit Profile</a>
                 </div>
@@ -91,63 +76,90 @@
                         <button type="submit" class="py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Ask</button>
                     </div>
                 </form>
-                {% if ai_response %}
-                <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
-                    <p class="text-slate-700 whitespace-pre-wrap"><strong class="font-semibold">Assistant:</strong> {{ ai_response | safe }}</p>
-                </div>
-                {% endif %}
+                {% if ai_response %}<div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded"><p class="text-slate-700 whitespace-pre-wrap"><strong class="font-semibold">Assistant:</strong> {{ ai_response | safe }}</p></div>{% endif %}
             </div>
             <div class="bg-white p-6 rounded-lg shadow-md">
                  <h3 class="text-xl font-semibold mb-4">Add New Medication</h3>
-                <form id="add-med-form" action="{{ url_for('add_medication') }}" method="post" class="flex items-end space-x-4 mb-6">
-                    <div class="flex-grow"><label class="block text-sm font-medium">Drug Name</label><input type="text" id="drug_name_input" name="drug_name" class="mt-1 w-full px-3 py-2 border rounded-md" required></div>
-                    <div class="flex-grow"><label class="block text-sm font-medium">Dosage</label><input type="text" name="dosage" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
-                    <button type="button" id="check-med-button" class="py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Check</button>
+                <form id="add-med-form" action="{{ url_for('add_medication') }}" method="post">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div><label class="block text-sm font-medium">Drug Name</label><input type="text" id="drug_name_input" name="drug_name" class="mt-1 w-full px-3 py-2 border rounded-md" required></div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div><label class="block text-sm font-medium">Dosage</label><input type="number" step="any" name="dosage_amount" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
+                            <div><label class="block text-sm font-medium">Unit</label><input type="text" name="dosage_unit" class="mt-1 w-full px-3 py-2 border rounded-md" placeholder="e.g., mg, ml"></div>
+                        </div>
+                        <div><label class="block text-sm font-medium">Frequency</label><input type="text" name="frequency" class="mt-1 w-full px-3 py-2 border rounded-md" placeholder="e.g., Twice daily"></div>
+                        <div><label class="block text-sm font-medium">Start Date</label><input type="date" name="start_date" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
+                        <div><label class="block text-sm font-medium">End Date (optional)</label><input type="date" name="end_date" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
+                        <div class="flex items-end">
+                            <button type="button" id="check-med-button" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Check</button>
+                        </div>
+                    </div>
                 </form>
+
                 <div id="pre-check-assistant" class="hidden mt-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
                     <p id="assistant-summary" class="text-slate-700 whitespace-pre-wrap"></p>
                     <div id="confirmation-buttons" class="mt-4 space-x-4"></div>
                 </div>
+                
                 <h3 class="text-xl font-semibold mb-4 border-t pt-6">Current Medication Log</h3>
-                {% if medications %}<ul class="divide-y divide-slate-200">{% for med in medications %}<li class="py-3 flex justify-between items-center"><p class="font-medium">{{ med.drug_name }}</p><p class="text-slate-500">{{ med.dosage }}</p></li>{% endfor %}</ul>{% else %}<p class="text-slate-500">No medications logged yet.</p>{% endif %}
+                {% if medications %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Medicine Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Dosage</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Frequency</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Dates</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-200">
+                            {% for med in medications %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{{ med.drug_name }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ med.dosage_amount }} {{ med.dosage_unit }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ med.frequency }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ med.start_date }} to {{ med.end_date or 'Ongoing' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}<p class="text-slate-500">No medications logged yet.</p>{% endif %}
             </div>
         </div>
         {% endif %}
 
-        <!-- PROFILE PAGE -->
         {% if page == 'profile' %}
         <div class="bg-white p-8 rounded-lg shadow-md">
             <h2 class="text-2xl font-semibold mb-6 border-b pb-4">Comprehensive Health Profile</h2>
             <form action="{{ url_for('profile') }}" method="post" class="space-y-6">
-                <!-- Personal Details Section -->
+                <!-- Profile Sections -->
                 <div>
                     <h3 class="text-lg font-medium text-slate-800 mb-2">Personal Details</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label class="block text-sm font-medium">Date of Birth</label><input type="date" name="dob" value="{{ patient.dob or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
-                        <div><label class="block text-sm font-medium">Gender</label><select name="gender" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="" {% if not patient.gender %}selected{% endif %}>Select...</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+                        <div><label class="block text-sm font-medium">Gender</label><select name="gender" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option></select></div>
                         <div><label class="block text-sm font-medium">Weight (kg)</label><input type="number" step="0.1" name="weight_kg" value="{{ patient.weight_kg or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
                         <div><label class="block text-sm font-medium">Height (cm)</label><input type="number" name="height_cm" value="{{ patient.height_cm or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
-                        <div class="md:col-span-2"><label class="block text-sm font-medium">Emergency Contact (Name & Phone)</label><input type="text" name="emergency_contact" value="{{ patient.emergency_contact or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
+                        <div class="md:col-span-2"><label class="block text-sm font-medium">Emergency Contact</label><input type="text" name="emergency_contact" value="{{ patient.emergency_contact or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
                     </div>
                 </div>
-                <!-- Medical Conditions Section -->
                 <div>
                     <h3 class="text-lg font-medium text-slate-800 mb-2">Medical Conditions</h3>
-                    <div><label class="block text-sm font-medium">List any chronic or significant conditions</label><input type="text" name="conditions" value="{{ patient.conditions or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Diabetes, High Blood Pressure, Asthma"></div>
+                    <div><label class="block text-sm font-medium">List any chronic or significant conditions</label><input type="text" name="conditions" value="{{ patient.conditions or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Diabetes, High Blood Pressure"></div>
                 </div>
-                <!-- Allergies Section -->
                 <div>
                     <h3 class="text-lg font-medium text-slate-800 mb-2">Allergies</h3>
                     <div><label class="block text-sm font-medium">Drug Allergies</label><input type="text" name="drug_allergies" value="{{ patient.drug_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Penicillin, Sulfa drugs"></div>
-                    <div><label class="block text-sm font-medium">Food Allergies</label><input type="text" name="food_allergies" value="{{ patient.food_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Peanuts, Shellfish"></div>
-                    <div><label class="block text-sm font-medium">Other Allergies</label><input type="text" name="other_allergies" value="{{ patient.other_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Latex, Pollen"></div>
+                    <div><label class="block text-sm font-medium">Food Allergies</label><input type="text" name="food_allergies" value="{{ patient.food_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
+                    <div><label class="block text-sm font-medium">Other Allergies</label><input type="text" name="other_allergies" value="{{ patient.other_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
                 </div>
-                <!-- Lifestyle Section -->
                 <div>
                     <h3 class="text-lg font-medium text-slate-800 mb-2">Lifestyle Habits</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-medium">Smoking Status</label><select name="is_smoker" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="No" {% if patient.is_smoker == 'No' %}selected{% endif %}>No</option><option value="Yes" {% if patient.is_smoker == 'Yes' %}selected{% endif %}>Yes</option><option value="Former" {% if patient.is_smoker == 'Former' %}selected{% endif %}>Former</option></select></div>
-                        <div><label class="block text-sm font-medium">Alcohol Consumption</label><select name="alcohol_consumption" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="None" {% if patient.alcohol_consumption == 'None' %}selected{% endif %}>None</option><option value="Occasional" {% if patient.alcohol_consumption == 'Occasional' %}selected{% endif %}>Occasional</option><option value="Regular" {% if patient.alcohol_consumption == 'Regular' %}selected{% endif %}>Regular</option></select></div>
+                        <div><label class="block text-sm font-medium">Smoking Status</label><select name="is_smoker" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="No">No</option><option value="Yes">Yes</option><option value="Former">Former</option></select></div>
+                        <div><label class="block text-sm font-medium">Alcohol Consumption</label><select name="alcohol_consumption" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="None">None</option><option value="Occasional">Occasional</option><option value="Regular">Regular</option></select></div>
                     </div>
                 </div>
                 <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Save Profile</button>

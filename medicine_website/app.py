@@ -6,25 +6,27 @@ import json
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
 from datetime import date
-import joblib # To load our trained ML model
-import numpy as np
 
 app = Flask(__name__)
 app.secret_key = 'the_final_and_most_secure_key' 
 
-# --- Load the Prediction Model ---
+# --- NEW: Load the JSON Rulebook ---
 try:
-    ade_predictor = joblib.load('ade_predictor.joblib')
-    print("[INFO] Adverse Drug Event (ADE) prediction model loaded successfully.")
+    with open('drug_conditions.json', 'r') as f:
+        drug_condition_rules = json.load(f)
+    print("[INFO] Drug-Condition rulebook loaded successfully.")
 except FileNotFoundError:
-    print("[ERROR] 'ade_predictor.joblib' not found. Please run train_model.py first.")
-    ade_predictor = None
+    print("[ERROR] 'drug_conditions.json' not found. Please run process_kaggle_data.py first.")
+    drug_condition_rules = {}
+except json.JSONDecodeError:
+    print("[ERROR] Could not parse 'drug_conditions.json'. File might be corrupt.")
+    drug_condition_rules = {}
 
 # --- RAG System (Unchanged) ---
 class RAGSystem:
     def __init__(self, data_file):
         try:
-            self.df = pd.read_csv(data_file)
+            self.df = pd.read_csv(data_file).fillna('')
             self.df['drug_a_lower'] = self.df['drug_a'].astype(str).str.lower().str.strip()
             self.df['drug_b_lower'] = self.df['drug_b'].astype(str).str.lower().str.strip()
             print("[INFO] RAG Knowledge Base initialized successfully.")
@@ -42,7 +44,7 @@ class RAGSystem:
         return None
 rag_system = RAGSystem('interactions.csv')
 
-# --- Helper & AI Functions (Unchanged) ---
+# --- Helper & AI Functions ---
 def get_db_connection():
     conn = sqlite3.connect('medicine_log.db'); conn.row_factory = sqlite3.Row; return conn
 def calculate_age(dob_str):
@@ -52,6 +54,8 @@ def calculate_age(dob_str):
         today = date.today()
         return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
     except (ValueError, TypeError): return None
+
+# --- THIS IS THE UPGRADED AI PROMPT FOR HOLISTIC ANALYSIS ---
 def ask_local_llm(context):
     prompt = f"""You are an expert clinical pharmacologist AI. Your persona is that of a knowledgeable, caring, and direct friend. Analyze the complete [CONTEXT] provided and generate a response.
 
@@ -59,10 +63,9 @@ def ask_local_llm(context):
     {context}
 
     [INSTRUCTIONS]
-    1.  **Analyze Holistically:** Review all information: the patient's profile, all current medications, the new drug, and crucially, the **ADE Risk Score Prediction**.
+    1.  **Analyze Holistically:** This is your most important task. Review all information: the patient's profile, their **entire list of current medications**, and the new drug. Look for not just pairwise (A+B) interactions from the database, but also potential **multi-drug (A+B+C) interactions** based on your internal knowledge (e.g., combining multiple depressants, serotonin syndrome risk, etc.).
     2.  **Synthesize Findings:** Generate a single, easy-to-understand summary.
-        * **If the ADE Risk Score is HIGH (e.g., >60%)**: Start by highlighting this. **Example:** "Hi Ganesh, I've analyzed your full profile and my prediction model shows a high 75% risk of an adverse event with this new combination. This is mainly because..."
-        * **If any CRITICAL pairwise interaction is found:** State it clearly. **Example:** "...this is a major concern. Taking an NSAID while you are on Warfarin is very dangerous. Please do not take this."
+        * **If any CRITICAL or HIGH RISK is found:** State it clearly and directly. Explain the risk in simple terms. **Example:** "Hi Ganesh, I've looked at your full medication list and this is a major concern. Taking an NSAID while you are on both Warfarin and Methotrexate significantly increases the risk of severe side effects. Please do not take this. It's really important to talk to your doctor about a safer alternative."
     3.  **Final Verdict:** End your response with a clear, one-line verdict on a new line: "Verdict: SAFE TO ADD" or "Verdict: DO NOT ADD".
     """
     api_url = "http://localhost:1234/v1/chat/completions"
@@ -74,6 +77,20 @@ def ask_local_llm(context):
         return response.json()['choices'][0]['message']['content']
     except requests.exceptions.RequestException:
         return "I am unable to connect to the AI assistant. Please ensure LM Studio is running.\nVerdict: DO NOT ADD"
+
+def get_personalized_warnings(new_drug, patient):
+    warnings = []
+    drug_lower = new_drug.lower().strip()
+    allergies = patient['drug_allergies'].lower() if patient['drug_allergies'] else ""
+    if allergies and any(allergy.strip() in drug_lower for allergy in allergies.split(',')):
+        warnings.append(f"🚨 Allergy Alert: Profile indicates an allergy to '{new_drug.title()}'.")
+    patient_conditions = patient['conditions'].lower() if patient['conditions'] else ""
+    for condition, risky_drugs in drug_condition_rules.items():
+        if condition in patient_conditions:
+            for risky_drug in risky_drugs:
+                if risky_drug in drug_lower:
+                    warnings.append(f"⚠️ Drug-Condition Alert: Taking '{new_drug.title()}' with a history of '{condition.title()}' can be risky.")
+    return warnings
 
 # --- USER AUTH & PROFILE (Unchanged) ---
 @app.route('/')
@@ -122,79 +139,68 @@ def profile():
     patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone(); conn.close()
     return render_template('index.html', page='profile', patient=patient)
 
-# --- HOLISTIC CHECKING LOGIC WITH PREDICTION ---
-@app.route('/check_before_adding', methods=['POST'])
-def check_before_adding():
-    if 'patient_id' not in session: return jsonify({'error': 'User not logged in'}), 401
-    if not ade_predictor: return jsonify({'summary': "Prediction model not loaded. Cannot perform check.", 'can_add': False})
-    
-    new_drug = request.json['drug_name']
-    conn = get_db_connection()
-    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
-    existing_meds = conn.execute('SELECT drug_name FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
-    conn.close()
-    
-    # 1. Prepare Features for the ML Model
-    age = calculate_age(patient['dob']) or 0
-    num_conditions = len(patient['conditions'].split(',')) if patient['conditions'] else 0
-    num_allergies = len(patient['drug_allergies'].split(',')) if patient['drug_allergies'] else 0
-    num_meds = len(existing_meds) + 1 # Include the new drug in the count
-    
-    features = np.array([[age, num_conditions, num_allergies, num_meds]])
-    
-    # 2. Get Prediction from the ML Model
-    ade_risk_prob = ade_predictor.predict_proba(features)[0][1] # Probability of class 1 (ADE)
-    ade_risk_percent = int(ade_risk_prob * 100)
 
-    # 3. Get Pairwise Interactions
-    pairwise_risks = []
+# --- HOLISTIC CHECKING LOGIC ---
+def get_holistic_context(new_drug, patient, existing_meds):
+    patient_age = calculate_age(patient['dob'])
+    context_str = f"Patient Profile: Name: {patient['name']}, Age: {patient_age}, Conditions: {patient['conditions']}, Allergies: {patient['drug_allergies']}.\n"
+    context_str += f"Current Medications: {', '.join([med['drug_name'] for med in existing_meds]) if existing_meds else 'None'}.\n"
+    context_str += f"New Drug to Analyze: {new_drug}.\n\n"
+    context_str += "Known Pairwise Interactions from Database:\n"
+    
+    found_pairwise = False
+    all_alerts = get_personalized_warnings(new_drug, patient) # Start with profile alerts
     for med in existing_meds:
         interaction = rag_system.search_interaction(new_drug, med['drug_name'])
         if interaction:
-            pairwise_risks.append(f"- {interaction['drug_a']} & {interaction['drug_b']} ({interaction['severity']}): {interaction['interaction']}")
+            found_pairwise = True
+            interaction_text = f"- {interaction['drug_a']} and {interaction['drug_b']} ({interaction['severity']}): {interaction['interaction']}"
+            context_str += interaction_text + "\n"
+            all_alerts.append(interaction_text) # Also add to alerts list
             
-    # 4. Build Holistic Context for the LLM
-    context_for_llm = f"Patient: {patient['name']}, Age: {age}.\n"
-    context_for_llm += f"Conditions: {patient['conditions']}.\nAllergies: {patient['drug_allergies']}.\n"
-    context_for_llm += f"Current Meds: {', '.join([m['drug_name'] for m in existing_meds])}.\n"
-    context_for_llm += f"New Drug: {new_drug}.\n"
-    context_for_llm += f"ML Model Prediction: {ade_risk_percent}% risk of Adverse Drug Event.\n"
-    if pairwise_risks: context_for_llm += "Specific Interactions Found:\n" + "\n".join(pairwise_risks)
+    if not found_pairwise:
+        context_str += "- No specific pairwise interactions were found in the knowledge base for the new drug against the current log.\n"
         
-    # 5. Get Final Analysis from the LLM
-    ai_summary = ask_local_llm(context_for_llm)
-    
-    summary_lines = ai_summary.split('\n')
-    verdict = summary_lines[-1]
-    can_add = "SAFE TO ADD" in verdict
-    main_summary = "\n".join(summary_lines[:-1])
+    return context_str, all_alerts
 
+@app.route('/check_before_adding', methods=['POST'])
+def check_before_adding():
+    if 'patient_id' not in session: return jsonify({'error': 'User not logged in'}), 401
+    new_drug = request.json['drug_name']
+    conn = get_db_connection(); patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+    existing_meds = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall(); conn.close()
+    
+    holistic_context, all_alerts = get_holistic_context(new_drug, patient, existing_meds)
+    ai_summary = ask_local_llm(holistic_context)
+
+    summary_lines = ai_summary.split('\n'); verdict = summary_lines[-1]; can_add = "SAFE TO ADD" in verdict; main_summary = "\n".join(summary_lines[:-1])
     return jsonify({'summary': main_summary, 'can_add': can_add})
 
 @app.route('/add_medication', methods=['POST'])
 def add_medication():
     if 'patient_id' not in session: return redirect(url_for('login'))
-    new_drug = request.form['drug_name']; dosage = request.form['dosage']
-    conn = get_db_connection()
-    conn.execute('INSERT INTO medications (patient_id, drug_name, dosage) VALUES (?, ?, ?)', (session['patient_id'], new_drug, dosage))
-    conn.commit(); conn.close()
-    flash(f"'{new_drug.title()}' has been added to your log.", "success")
-    return redirect(url_for('dashboard'))
+    form_data = (session['patient_id'], request.form['drug_name'], request.form.get('dosage_amount'), request.form.get('dosage_unit'), request.form.get('frequency'), request.form.get('start_date'), request.form.get('end_date'))
+    conn = get_db_connection(); conn.execute('INSERT INTO medications (patient_id, drug_name, dosage_amount, dosage_unit, frequency, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?)', form_data); conn.commit(); conn.close()
+    flash(f"'{request.form['drug_name']}' has been added to your log.", "success"); return redirect(url_for('dashboard'))
 
 @app.route('/ask_assistant', methods=['POST'])
 def ask_assistant():
-    # This can be simplified now or expanded to also use the ML model
-    # For now, keeping it as is for general questions
     if 'patient_id' not in session: return redirect(url_for('login'))
     question = request.form['question']
-    conn = get_db_connection()
-    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
-    # ... rest of the logic for the general assistant
-    # ...
-    conn.close()
-    # This needs to be filled out similar to the check_before_adding if you want prediction here too
-    return redirect(url_for('dashboard'))
+    conn = get_db_connection(); patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+    existing_meds = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall(); conn.close()
+    
+    # The new drug is extracted from the question for the holistic check
+    new_drug_match = re.search(r'(take|about|check) ([\w\s-]+)\?*$', question.lower())
+    new_drug = new_drug_match.group(2).strip() if new_drug_match else question
 
+    holistic_context, _ = get_holistic_context(new_drug, patient, existing_meds)
+    ai_response = ask_local_llm(holistic_context)
+    
+    conn = get_db_connection(); patient_data = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+    patient = dict(patient_data); patient['age'] = calculate_age(patient.get('dob'))
+    medications = conn.execute('SELECT * FROM medications WHERE patient_id = ? ORDER BY drug_name', (session['patient_id'],)).fetchall(); conn.close()
+    return render_template('index.html', page='dashboard', patient=patient, medications=medications, ai_response=ai_response.split('\nVerdict:')[0])
 
 @app.route('/logout')
 def logout():
