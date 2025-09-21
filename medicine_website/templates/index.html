@@ -68,6 +68,8 @@
                     <a href="{{ url_for('profile') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800 flex-shrink-0 ml-4">Edit Profile</a>
                 </div>
             </div>
+
+            <!-- THIS IS THE RESTORED AI ASSISTANT FOR CONVERSATIONAL Q&A -->
             <div class="bg-white p-6 rounded-lg shadow-md">
                 <h3 class="text-xl font-semibold mb-4">AI Assistant</h3>
                 <form action="{{ url_for('ask_assistant') }}" method="post">
@@ -76,51 +78,52 @@
                         <button type="submit" class="py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Ask</button>
                     </div>
                 </form>
-                {% if ai_response %}<div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded"><p class="text-slate-700 whitespace-pre-wrap"><strong class="font-semibold">Assistant:</strong> {{ ai_response | safe }}</p></div>{% endif %}
+                {% if ai_response %}
+                <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
+                    <p class="text-slate-700 whitespace-pre-wrap"><strong class="font-semibold">Assistant:</strong> {{ ai_response | safe }}</p>
+                </div>
+                {% endif %}
             </div>
+
             <div class="bg-white p-6 rounded-lg shadow-md">
                  <h3 class="text-xl font-semibold mb-4">Add New Medication</h3>
-                <form id="add-med-form" action="{{ url_for('add_medication') }}" method="post">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div><label class="block text-sm font-medium">Drug Name</label><input type="text" id="drug_name_input" name="drug_name" class="mt-1 w-full px-3 py-2 border rounded-md" required></div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div><label class="block text-sm font-medium">Dosage</label><input type="number" step="any" name="dosage_amount" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
-                            <div><label class="block text-sm font-medium">Unit</label><input type="text" name="dosage_unit" class="mt-1 w-full px-3 py-2 border rounded-md" placeholder="e.g., mg, ml"></div>
-                        </div>
-                        <div><label class="block text-sm font-medium">Frequency</label><input type="text" name="frequency" class="mt-1 w-full px-3 py-2 border rounded-md" placeholder="e.g., Twice daily"></div>
-                        <div><label class="block text-sm font-medium">Start Date</label><input type="date" name="start_date" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
-                        <div><label class="block text-sm font-medium">End Date (optional)</label><input type="date" name="end_date" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
-                        <div class="flex items-end">
-                            <button type="button" id="check-med-button" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Check</button>
-                        </div>
+                <form id="add-med-form" action="{{ url_for('add_medication') }}" method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-end">
+                    <div><label class="block text-sm font-medium">Drug Name</label><input type="text" id="drug_name_input" name="drug_name" class="mt-1 w-full px-3 py-2 border rounded-md" required></div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="block text-sm font-medium">Dosage</label><input type="number" step="any" name="dosage_amount" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
+                        <div><label class="block text-sm font-medium">Unit</label><input type="text" name="dosage_unit" class="mt-1 w-full px-3 py-2 border rounded-md" placeholder="e.g., mg, ml"></div>
                     </div>
+                    <div><label class="block text-sm font-medium">Frequency</label><input type="text" name="frequency" class="mt-1 w-full px-3 py-2 border rounded-md" placeholder="e.g., Twice daily"></div>
+                    <div><label class="block text-sm font-medium">Start Date</label><input type="date" name="start_date" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
+                    <div><label class="block text-sm font-medium">End Date (optional)</label><input type="date" name="end_date" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
+                    <div class="flex items-end"><button type="button" id="check-med-button" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Check</button></div>
                 </form>
 
-                <div id="pre-check-assistant" class="hidden mt-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
-                    <p id="assistant-summary" class="text-slate-700 whitespace-pre-wrap"></p>
-                    <div id="confirmation-buttons" class="mt-4 space-x-4"></div>
+                <!-- NEW: Decoupled Pre-check Assistant -->
+                <div id="pre-check-assistant" class="hidden mt-6 p-4 rounded-lg bg-white border">
+                    <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0 text-center">
+                            <p class="text-sm font-medium text-slate-500">Predicted Risk</p>
+                            <div id="risk-display" class="w-20 h-20 mt-1 rounded-full flex items-center justify-center text-white font-bold text-2xl">
+                                <span id="risk-percent-text"></span>
+                            </div>
+                        </div>
+                        <div class="flex-grow">
+                            <h4 class="font-semibold text-lg text-slate-800">Assistant's Explanation (from Knowledge Base)</h4>
+                            <p id="assistant-explanation" class="text-slate-600 mt-1 whitespace-pre-wrap"></p>
+                        </div>
+                    </div>
+                    <div id="confirmation-buttons" class="mt-4 pt-4 border-t flex justify-end space-x-3"></div>
                 </div>
                 
-                <h3 class="text-xl font-semibold mb-4 border-t pt-6">Current Medication Log</h3>
+                <h3 class="text-xl font-semibold mb-4 border-t pt-6 mt-8">Current Medication Log</h3>
                 {% if medications %}
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200">
-                        <thead class="bg-slate-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Medicine Name</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Dosage</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Frequency</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Dates</th>
-                            </tr>
-                        </thead>
+                        <thead class="bg-slate-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Medicine</th><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Dosage</th><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Frequency</th><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Dates</th></tr></thead>
                         <tbody class="bg-white divide-y divide-slate-200">
                             {% for med in medications %}
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{{ med.drug_name }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ med.dosage_amount }} {{ med.dosage_unit }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ med.frequency }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{{ med.start_date }} to {{ med.end_date or 'Ongoing' }}</td>
-                            </tr>
+                            <tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium">{{ med.drug_name }}</td><td class="px-6 py-4 text-sm text-slate-500">{{ med.dosage_amount }} {{ med.dosage_unit }}</td><td class="px-6 py-4 text-sm text-slate-500">{{ med.frequency }}</td><td class="px-6 py-4 text-sm text-slate-500">{{ med.start_date }} to {{ med.end_date or 'Ongoing' }}</td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -134,7 +137,7 @@
         <div class="bg-white p-8 rounded-lg shadow-md">
             <h2 class="text-2xl font-semibold mb-6 border-b pb-4">Comprehensive Health Profile</h2>
             <form action="{{ url_for('profile') }}" method="post" class="space-y-6">
-                <!-- Profile Sections -->
+                <!-- Profile sections -->
                 <div>
                     <h3 class="text-lg font-medium text-slate-800 mb-2">Personal Details</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -145,18 +148,15 @@
                         <div class="md:col-span-2"><label class="block text-sm font-medium">Emergency Contact</label><input type="text" name="emergency_contact" value="{{ patient.emergency_contact or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
                     </div>
                 </div>
+                <div><h3 class="text-lg font-medium">Medical Conditions</h3><input type="text" name="conditions" value="{{ patient.conditions or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Diabetes, High Blood Pressure"></div>
                 <div>
-                    <h3 class="text-lg font-medium text-slate-800 mb-2">Medical Conditions</h3>
-                    <div><label class="block text-sm font-medium">List any chronic or significant conditions</label><input type="text" name="conditions" value="{{ patient.conditions or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Diabetes, High Blood Pressure"></div>
-                </div>
-                <div>
-                    <h3 class="text-lg font-medium text-slate-800 mb-2">Allergies</h3>
+                    <h3 class="text-lg font-medium">Allergies</h3>
                     <div><label class="block text-sm font-medium">Drug Allergies</label><input type="text" name="drug_allergies" value="{{ patient.drug_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Penicillin, Sulfa drugs"></div>
                     <div><label class="block text-sm font-medium">Food Allergies</label><input type="text" name="food_allergies" value="{{ patient.food_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
                     <div><label class="block text-sm font-medium">Other Allergies</label><input type="text" name="other_allergies" value="{{ patient.other_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
                 </div>
                 <div>
-                    <h3 class="text-lg font-medium text-slate-800 mb-2">Lifestyle Habits</h3>
+                    <h3 class="text-lg font-medium">Lifestyle Habits</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label class="block text-sm font-medium">Smoking Status</label><select name="is_smoker" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="No">No</option><option value="Yes">Yes</option><option value="Former">Former</option></select></div>
                         <div><label class="block text-sm font-medium">Alcohol Consumption</label><select name="alcohol_consumption" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="None">None</option><option value="Occasional">Occasional</option><option value="Regular">Regular</option></select></div>
@@ -168,23 +168,26 @@
         {% endif %}
     </div>
 
-    <!-- JavaScript for Interactive Pre-check -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const checkButton = document.getElementById('check-med-button');
-            const medForm = document.getElementById('add-med-form');
-            const drugNameInput = document.getElementById('drug_name_input');
-            const assistantArea = document.getElementById('pre-check-assistant');
-            const summaryText = document.getElementById('assistant-summary');
-            const confirmButtons = document.getElementById('confirmation-buttons');
-
             if (checkButton) {
+                const medForm = document.getElementById('add-med-form');
+                const drugNameInput = document.getElementById('drug_name_input');
+                const assistantArea = document.getElementById('pre-check-assistant');
+                const riskDisplay = document.getElementById('risk-display');
+                const riskPercentText = document.getElementById('risk-percent-text');
+                const explanationText = document.getElementById('assistant-explanation');
+                const confirmButtons = document.getElementById('confirmation-buttons');
+
                 checkButton.addEventListener('click', async function() {
                     const drugName = drugNameInput.value.trim();
                     if (!drugName) { alert('Please enter a drug name to check.'); return; }
 
                     assistantArea.classList.remove('hidden');
-                    summaryText.textContent = 'Assistant is checking your full profile, one moment...';
+                    riskPercentText.textContent = '...';
+                    explanationText.textContent = 'Assistant is checking your full profile...';
+                    riskDisplay.className = 'w-20 h-20 mt-1 rounded-full flex items-center justify-center text-white font-bold text-2xl bg-slate-400 animate-pulse';
                     confirmButtons.innerHTML = '';
 
                     try {
@@ -196,8 +199,21 @@
                         if (!response.ok) throw new Error('Server error');
                         const data = await response.json();
                         
-                        summaryText.innerHTML = `<strong>Assistant:</strong> ${data.summary.replace(/\n/g, '<br>')}`;
+                        // Update Risk Percentage Display
+                        riskDisplay.classList.remove('animate-pulse');
+                        riskPercentText.textContent = `${data.risk_percent}%`;
+                        if (data.risk_percent >= 70) {
+                            riskDisplay.className = riskDisplay.className.replace('bg-slate-400', 'bg-red-500');
+                        } else if (data.risk_percent >= 40) {
+                            riskDisplay.className = riskDisplay.className.replace('bg-slate-400', 'bg-yellow-500');
+                        } else {
+                            riskDisplay.className = riskDisplay.className.replace('bg-slate-400', 'bg-green-500');
+                        }
 
+                        // Update Explanation
+                        explanationText.innerHTML = data.explanation.replace(/\n/g, '<br>');
+
+                        // Add Buttons
                         const cancelButton = document.createElement('button');
                         cancelButton.textContent = 'Cancel';
                         cancelButton.className = 'py-2 px-4 rounded-md font-medium text-slate-600 bg-slate-200 hover:bg-slate-300';
@@ -212,7 +228,9 @@
                             confirmButtons.appendChild(confirmButton);
                         }
                     } catch (error) {
-                        summaryText.textContent = 'Could not perform the check. Please try again.';
+                        explanationText.textContent = 'Could not perform the check. Please try again.';
+                        riskPercentText.textContent = 'Err';
+                        riskDisplay.className = riskDisplay.className.replace('bg-slate-400', 'bg-red-500');
                     }
                 });
             }
