@@ -6,21 +6,39 @@ import json
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
 from datetime import date
-import joblib
-import numpy as np
+import torch
+from torch_geometric.nn import SAGEConv
 
 app = Flask(__name__)
 app.secret_key = 'the_final_and_most_secure_key' 
 
-# --- Load the Prediction Model "Brain" ---
-try:
-    ade_predictor = joblib.load('models/ade_predictor.joblib')
-    print("[INFO] Adverse Drug Event (ADE) prediction model loaded successfully.")
-except FileNotFoundError:
-    print("[ERROR] 'models/ade_predictor.joblib' not found. Please run train_model.py first.")
-    ade_predictor = None
+# --- GNN Model Definition and Loading ---
+class GNNLinkPredictor(torch.nn.Module):
+    def __init__(self, num_nodes, embedding_dim=64):
+        super(GNNLinkPredictor, self).__init__()
+        self.embedding = torch.nn.Embedding(num_nodes, embedding_dim)
+        self.conv1 = SAGEConv(embedding_dim, embedding_dim * 2)
+        self.conv2 = SAGEConv(embedding_dim * 2, embedding_dim)
+    def encode(self, x, edge_index):
+        x = self.embedding(x); x = self.conv1(x, edge_index).relu(); x = self.conv2(x, edge_index); return x
+    def decode(self, z, edge_label_index):
+        src = z[edge_label_index[0]]; dst = z[edge_label_index[1]]; return (src * dst).sum(dim=-1)
 
-# --- RAG System ---
+def load_gnn_model():
+    try:
+        with open('models/drug_map.json', 'r') as f: drug_map = json.load(f)
+        model = GNNLinkPredictor(num_nodes=len(drug_map))
+        map_location = torch.device('cpu')
+        model.load_state_dict(torch.load('models/gnn_model.pt', map_location=map_location))
+        model.eval()
+        print("[INFO] GNN Prediction Model loaded successfully on CPU.")
+        return model, drug_map
+    except FileNotFoundError:
+        print("[ERROR] GNN model not found. Please run train_gnn.py first.")
+        return None, None
+gnn_model, drug_map = load_gnn_model()
+
+# --- RAG System (Used for factual lookup) ---
 class RAGSystem:
     def __init__(self, data_file):
         try:
@@ -39,7 +57,7 @@ class RAGSystem:
         return None
 rag_system = RAGSystem('interactions.csv')
 
-# --- Helper Functions ---
+# --- Helper & AI Functions ---
 def get_db_connection():
     conn = sqlite3.connect('medicine_log.db'); conn.row_factory = sqlite3.Row; return conn
 def calculate_age(dob_str):
@@ -49,6 +67,16 @@ def calculate_age(dob_str):
         today = date.today()
         return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
     except (ValueError, TypeError): return 0
+
+def predict_gnn_risk(drug1, drug2):
+    if not gnn_model or not drug_map: return 0.0
+    d1_idx = drug_map.get(drug1.strip()); d2_idx = drug_map.get(drug2.strip())
+    if d1_idx is None or d2_idx is None: return 0.0
+    with torch.no_grad():
+        embeddings = gnn_model.embedding.weight
+        d1_emb = embeddings[d1_idx]; d2_emb = embeddings[d2_idx]
+        score = torch.sigmoid((d1_emb * d2_emb).sum()).item()
+        return score
 
 # --- THIS IS THE UPGRADED AI PROMPT ---
 def ask_local_llm(context):
@@ -63,9 +91,8 @@ def ask_local_llm(context):
         * You MUST use the "Specific Interactions Found" from the context to explain *why* there might be a risk.
         * For EACH interaction, you must explicitly state the **consequence** of that interaction. Don't just say "there is a risk"; explain what the risk IS (e.g., "this combination can increase your risk of bleeding," or "it might make your blood pressure drop too low"). This is the most helpful information you can provide.
     3.  **Synthesize Findings:**
-        * **Example of a good, detailed explanation:** "Hi Ganesh, I've looked at this for you. My main concern is that my knowledge base shows a serious interaction between Warfarin and Aspirin. Taking these together can **significantly increase your risk of bleeding**. Also, your profile mentions a history of stomach ulcers, and Aspirin can make that condition worse. Because of these clear risks, my advice is not to take this combination."
+        * **Example of a good, detailed explanation:** "Hi Ganesh, I looked this up for you. My knowledge base shows a serious interaction between Warfarin and Aspirin, which can **significantly increase your risk of bleeding**. Also, your profile mentions a history of stomach ulcers, and Aspirin can make that condition worse. Because of these clear risks, my advice is not to take this combination."
         * **If no interactions are found:** Be reassuring. **Example:** "Hi Ganesh, I've checked my knowledge base, and I don't see any major interactions listed for this medication with your current regimen or health conditions. It looks to be a safe combination."
-    4.  **Final Verdict (if applicable):** If the context is about adding a new drug, end your response with a clear, one-line verdict on a new line: "Verdict: SAFE TO ADD" or "Verdict: DO NOT ADD".
     """
     api_url = "http://localhost:1234/v1/chat/completions"
     headers = {"Content-Type": "application/json"}
@@ -75,7 +102,7 @@ def ask_local_llm(context):
         response.raise_for_status()
         return response.json()['choices'][0]['message']['content']
     except requests.exceptions.RequestException:
-        return "I am unable to connect to the AI assistant. Please ensure LM Studio is running.\nVerdict: DO NOT ADD"
+        return "I am unable to connect to the AI assistant to provide an explanation. Please ensure LM Studio is running."
 
 # --- USER AUTH & PROFILE (Unchanged) ---
 @app.route('/')
@@ -106,7 +133,7 @@ def register():
     return render_template('index.html', page='register')
 @app.route('/dashboard')
 def dashboard():
-    if 'patient_id' not in session: return redirect(url_for('dashboard'))
+    if 'patient_id' not in session: return redirect(url_for('login'))
     conn = get_db_connection(); patient_data = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
     patient = dict(patient_data); patient['age'] = calculate_age(patient.get('dob'))
     medications = conn.execute('SELECT * FROM medications WHERE patient_id = ? ORDER BY drug_name', (session['patient_id'],)).fetchall()
@@ -132,39 +159,36 @@ def check_before_adding():
     new_drug = request.json['drug_name']
     conn = get_db_connection()
     patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
-    existing_meds = conn.execute('SELECT drug_name FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
+    existing_meds = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
     conn.close()
 
-    # --- XGBoost Prediction ---
-    risk_percent = 0
-    if ade_predictor:
-        age = calculate_age(patient['dob']) or 0
-        num_conditions = len(patient['conditions'].split(',')) if patient['conditions'] else 0
-        num_allergies = len(patient['drug_allergies'].split(',')) if patient['drug_allergies'] else 0
-        num_meds = len(existing_meds) + 1
-        features = np.array([[age, num_conditions, num_allergies, num_meds]])
-        ade_risk_prob = ade_predictor.predict_proba(features)[0][1]
-        risk_percent = int(ade_risk_prob * 100)
+    # --- 1. GNN Prediction (Quantitative) ---
+    risk_scores = []
+    for med in existing_meds:
+        # We need to pass the string from the DB row
+        risk = predict_gnn_risk(new_drug, med['drug_name'])
+        risk_scores.append(risk)
+    overall_risk_percent = int(max(risk_scores) * 100) if risk_scores else 0
 
-    # --- RAG Interaction Search ---
-    pairwise_risks = []
+    # --- 2. RAG + LLM Explanation (Qualitative) ---
+    rag_facts = []
     for med in existing_meds:
         interaction = rag_system.search_interaction(new_drug, med['drug_name'])
-        if interaction: pairwise_risks.append(f"- {interaction['drug_a']} & {interaction['drug_b']} ({interaction['severity']}): {interaction['interaction']}")
+        if interaction:
+            rag_facts.append(f"- {interaction['drug_a']} & {interaction['drug_b']} ({interaction['severity']}): {interaction['interaction']}")
     
-    # --- LLM Explanation ---
     context_for_llm = f"Patient: {patient['name']}.\n"
-    if pairwise_risks: 
-        context_for_llm += "Specific Interactions Found:\n" + "\n".join(pairwise_risks)
+    if rag_facts: 
+        context_for_llm += "Specific Interactions Found:\n" + "\n".join(rag_facts)
     else:
         context_for_llm += "Specific Interactions Found: None in the knowledge base.\n"
     
     explanation = ask_local_llm(context_for_llm)
 
-    # The medication is not safe if the risk is high OR there are any interactions
-    can_add = risk_percent < 50 and not pairwise_risks
+    # A drug is unsafe if the GNN predicts a high risk OR if the RAG finds a known interaction.
+    can_add = overall_risk_percent < 70 and not rag_facts
 
-    return jsonify({'risk_percent': risk_percent, 'explanation': explanation, 'can_add': can_add})
+    return jsonify({'risk_percent': overall_risk_percent, 'explanation': explanation, 'can_add': can_add})
 
 @app.route('/add_medication', methods=['POST'])
 def add_medication():
@@ -173,46 +197,9 @@ def add_medication():
     conn = get_db_connection(); conn.execute('INSERT INTO medications (patient_id, drug_name, dosage_amount, dosage_unit, frequency, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?)', form_data); conn.commit(); conn.close()
     flash(f"'{request.form['drug_name']}' has been added to your log.", "success"); return redirect(url_for('dashboard'))
 
-# --- RESTORED AND UPGRADED AI ASSISTANT ---
 @app.route('/ask_assistant', methods=['POST'])
 def ask_assistant():
-    if 'patient_id' not in session: return redirect(url_for('login'))
-    
-    question = request.form['question']
-    conn = get_db_connection()
-    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
-    existing_meds = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
-    
-    # Try to extract a specific drug from the user's question for a targeted check
-    match = re.search(r'(take|about|check) ([\w\s-]+)\?*$', question.lower())
-    topic_to_check = match.group(2).strip() if match else question
-
-    # Build the complete, holistic context
-    context_str = f"Patient Profile: Name: {patient['name']}, Age: {calculate_age(patient['dob'])}, Conditions: {patient['conditions']}, Allergies: {patient['drug_allergies']}.\n"
-    context_str += f"Current Medications: {', '.join([med['drug_name'] for med in existing_meds]) if existing_meds else 'None'}.\n"
-    context_str += f"Patient's Question is about: {topic_to_check}.\n\n"
-    context_str += "Specific Interactions Found in Knowledge Base:\n"
-    
-    # Check topic against profile and all existing meds
-    all_risks = get_personalized_warnings(topic_to_check, patient)
-    for med in existing_meds:
-        interaction = rag_system.search_interaction(topic_to_check, med['drug_name'])
-        if interaction:
-            all_risks.append(f"- {interaction['drug_a']} & {interaction['drug_b']} ({interaction['severity']}): {interaction['interaction']}")
-            
-    if all_risks:
-        context_str += "\n".join(all_risks)
-    else:
-        context_str += "None relevant to the question."
-
-    # Get the AI's final, detailed explanation
-    ai_response = ask_local_llm(context_str)
-    
-    # Re-render the dashboard with the new response
-    patient_dict = dict(patient); patient_dict['age'] = calculate_age(patient.get('dob'))
-    medications = conn.execute('SELECT * FROM medications WHERE patient_id = ? ORDER BY drug_name', (session['patient_id'],)).fetchall()
-    conn.close()
-    return render_template('index.html', page='dashboard', patient=patient_dict, medications=medications, ai_response=ai_response)
+    return redirect(url_for('dashboard')) # Simplified for now
 
 @app.route('/logout')
 def logout():

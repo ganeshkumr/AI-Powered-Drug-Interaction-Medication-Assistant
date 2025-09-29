@@ -68,23 +68,6 @@
                     <a href="{{ url_for('profile') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800 flex-shrink-0 ml-4">Edit Profile</a>
                 </div>
             </div>
-
-            <!-- THIS IS THE RESTORED AI ASSISTANT FOR CONVERSATIONAL Q&A -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h3 class="text-xl font-semibold mb-4">AI Assistant</h3>
-                <form action="{{ url_for('ask_assistant') }}" method="post">
-                    <div class="flex items-center space-x-4">
-                        <input type="text" name="question" class="flex-grow w-full px-3 py-2 border rounded-md" placeholder="Ask a question, e.g., 'Can I take Aspirin?'" required>
-                        <button type="submit" class="py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Ask</button>
-                    </div>
-                </form>
-                {% if ai_response %}
-                <div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
-                    <p class="text-slate-700 whitespace-pre-wrap"><strong class="font-semibold">Assistant:</strong> {{ ai_response | safe }}</p>
-                </div>
-                {% endif %}
-            </div>
-
             <div class="bg-white p-6 rounded-lg shadow-md">
                  <h3 class="text-xl font-semibold mb-4">Add New Medication</h3>
                 <form id="add-med-form" action="{{ url_for('add_medication') }}" method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-end">
@@ -168,6 +151,7 @@
         {% endif %}
     </div>
 
+    <!-- UPDATED JAVASCRIPT FOR DECOUPLED DISPLAY -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const checkButton = document.getElementById('check-med-button');
