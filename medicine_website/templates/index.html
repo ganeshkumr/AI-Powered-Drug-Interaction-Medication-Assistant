@@ -37,121 +37,162 @@
 
         <!-- DYNAMIC CONTENT AREA -->
         
-        {% if page == 'login' or page == 'register' %}
-            <div class="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto">
-                <h2 class="text-2xl font-semibold mb-4 text-center">{% if page == 'login' %}Patient Login{% else %}Create New Patient Profile{% endif %}</h2>
-                <form action="{{ url_for(page) }}" method="post" class="space-y-4">
-                    <div><label for="name" class="block text-sm font-medium">Patient Name</label><input type="text" name="name" id="name" class="mt-1 block w-full px-3 py-2 border rounded-md" required></div>
-                    <div><label for="password" class="block text-sm font-medium">Password</label><input type="password" name="password" id="password" class="mt-1 block w-full px-3 py-2 border rounded-md" required></div>
-                    <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">{% if page == 'login' %}Login{% else %}Register{% endif %}</button>
-                </form>
-                <p class="text-center text-sm text-slate-500 mt-6">
-                    {% if page == 'login' %}New patient? <a href="{{ url_for('register') }}" class="font-medium text-blue-600 hover:text-blue-800">Create a profile</a>
-                    {% else %}Already have a profile? <a href="{{ url_for('login') }}" class="font-medium text-blue-600 hover:text-blue-800">Login here</a>
-                    {% endif %}
-                </p>
-            </div>
+        <!-- LOGIN PAGE (UPGRADED) -->
+        {% if page == 'login' %}
+        <div class="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto">
+            <h2 class="text-2xl font-semibold mb-4 text-center">Patient Login</h2>
+            <form action="{{ url_for('login') }}" method="post" class="space-y-4">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-slate-600">Email Address</label>
+                    <input type="email" name="email" id="email" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" required>
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-slate-600">Password</label>
+                    <input type="password" name="password" id="password" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" required>
+                </div>
+                <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Login</button>
+            </form>
+            <p class="text-center text-sm text-slate-500 mt-6">
+                New patient? <a href="{{ url_for('register') }}" class="font-medium text-blue-600 hover:text-blue-800">Create a profile</a>
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- REGISTRATION PAGE (UPGRADED) -->
+        {% if page == 'register' %}
+        <div class="bg-white p-8 rounded-lg shadow-md max-w-md mx-auto">
+            <h2 class="text-2xl font-semibold mb-4 text-center">Create New Patient Profile</h2>
+            <form action="{{ url_for('register') }}" method="post" class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-slate-600">Full Name</label>
+                    <input type="text" name="name" id="name" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" required>
+                </div>
+                <div>
+                    <label for="email" class="block text-sm font-medium text-slate-600">Email Address</label>
+                    <input type="email" name="email" id="email" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" required>
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-slate-600">Password</label>
+                    <input type="password" name="password" id="password" class="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md" required
+                           pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*(),.?:{}|<>]).{8,}"
+                           title="Must contain at least one number, one uppercase and lowercase letter, one special character, and at least 8 or more characters">
+                    <p class="text-xs text-slate-500 mt-1">8+ characters, with uppercase, lowercase, number, and special character.</p>
+                </div>
+                <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Register</button>
+            </form>
+            <p class="text-center text-sm text-slate-500 mt-6">
+                Already have a profile? <a href="{{ url_for('login') }}" class="font-medium text-blue-600 hover:text-blue-800">Login here</a>
+            </p>
+        </div>
         {% endif %}
         
-        {% if page == 'dashboard' %}
-        <div class="space-y-8">
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h2 class="text-2xl font-semibold">{{ patient.name }}'s Dashboard</h2>
-                        <div class="mt-2 text-slate-500 grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1 text-sm">
-                            <span><strong>Age:</strong> {{ patient.age or 'N/A' }}</span><span><strong>Gender:</strong> {{ patient.gender or 'N/A' }}</span><span><strong>Weight:</strong> {{ patient.weight_kg or 'N/A' }} kg</span>
-                            <span><strong>Height:</strong> {{ patient.height_cm or 'N/A' }} cm</span><span><strong>Smoker:</strong> {{ patient.is_smoker or 'N/A' }}</span><span><strong>Alcohol:</strong> {{ patient.alcohol_consumption or 'N/A' }}</span>
+        <!-- DASHBOARD & OTHER PAGES -->
+        {% if page == 'dashboard' or page == 'profile' %}
+            {% if page == 'dashboard' %}
+                <div class="space-y-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h2 class="text-2xl font-semibold">{{ patient.name }}'s Dashboard</h2>
+                                <div class="mt-2 text-slate-500 grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-1 text-sm">
+                                    <span><strong>Age:</strong> {{ patient.age or 'N/A' }}</span>
+                                    <span><strong>Gender:</strong> {{ patient.gender or 'N/A' }}</span>
+                                    <span><strong>Weight:</strong> {{ patient.weight_kg or 'N/A' }} kg</span>
+                                    <span><strong>Height:</strong> {{ patient.height_cm or 'N/A' }} cm</span>
+                                    <span><strong>Smoker:</strong> {{ patient.is_smoker or 'N/A' }}</span>
+                                    <span><strong>Alcohol:</strong> {{ patient.alcohol_consumption or 'N/A' }}</span>
+                                </div>
+                                <div class="mt-3 text-sm space-y-1">
+                                    <p><strong>Conditions:</strong> <span class="text-slate-500">{{ patient.conditions or 'None specified' }}</span></p>
+                                    <p><strong>Drug Allergies:</strong> <span class="text-red-500 font-medium">{{ patient.drug_allergies or 'None specified' }}</span></p>
+                                    <p><strong>Food Allergies:</strong> <span class="text-slate-500">{{ patient.food_allergies or 'None specified' }}</span></p>
+                                </div>
+                            </div>
+                            <a href="{{ url_for('profile') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800 flex-shrink-0 ml-4">Edit Profile</a>
                         </div>
-                        <div class="mt-3 text-sm space-y-1"><p><strong>Conditions:</strong> <span class="text-slate-500">{{ patient.conditions or 'None specified' }}</span></p><p><strong>Drug Allergies:</strong> <span class="text-red-500 font-medium">{{ patient.drug_allergies or 'None specified' }}</span></p></div>
                     </div>
-                    <a href="{{ url_for('profile') }}" class="text-sm font-medium text-blue-600 hover:text-blue-800 flex-shrink-0 ml-4">Edit Profile</a>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold mb-4">AI Assistant</h3>
+                        <form action="{{ url_for('ask_assistant') }}" method="post">
+                            <div class="flex items-center space-x-4">
+                                <input type="text" name="question" class="flex-grow w-full px-3 py-2 border rounded-md" placeholder="Ask a question, e.g., 'Can I take Aspirin?'" required>
+                                <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Ask</button>
+                            </div>
+                        </form>
+                        {% if ai_response %}<div class="mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 rounded"><p class="text-slate-700 whitespace-pre-wrap"><strong class="font-semibold">Assistant:</strong> {{ ai_response | safe }}</p></div>{% endif %}
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                         <h3 class="text-xl font-semibold mb-4">Add New Medication</h3>
+                        <form id="add-med-form" action="{{ url_for('add_medication') }}" method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-end">
+                            <div><label class="block text-sm font-medium">Drug Name</label><input type="text" id="drug_name_input" name="drug_name" class="mt-1 w-full px-3 py-2 border rounded-md" required></div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><label class="block text-sm font-medium">Dosage</label><input type="number" step="any" name="dosage_amount" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
+                                <div><label class="block text-sm font-medium">Unit</label><input type="text" name="dosage_unit" class="mt-1 w-full px-3 py-2 border rounded-md" placeholder="e.g., mg, ml"></div>
+                            </div>
+                            <div><label class="block text-sm font-medium">Frequency</label><input type="text" name="frequency" class="mt-1 w-full px-3 py-2 border rounded-md" placeholder="e.g., Twice daily"></div>
+                            <div><label class="block text-sm font-medium">Start Date</label><input type="date" name="start_date" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
+                            <div><label class="block text-sm font-medium">End Date (optional)</label><input type="date" name="end_date" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
+                            <div class="flex items-end"><button type="button" id="check-med-button" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Check</button></div>
+                        </form>
+                        <div id="pre-check-assistant" class="hidden mt-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded">
+                            <p id="assistant-summary" class="text-slate-700 whitespace-pre-wrap"></p>
+                            <div id="confirmation-buttons" class="mt-4 space-x-4"></div>
+                        </div>
+                        <h3 class="text-xl font-semibold mb-4 border-t pt-6">Current Medication Log</h3>
+                        {% if medications %}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-slate-200">
+                                <thead class="bg-slate-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Medicine</th><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Dosage</th><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Frequency</th><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Dates</th></tr></thead>
+                                <tbody class="bg-white divide-y divide-slate-200">
+                                    {% for med in medications %}
+                                    <tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium">{{ med.drug_name }}</td><td class="px-6 py-4 text-sm text-slate-500">{{ med.dosage_amount }} {{ med.dosage_unit }}</td><td class="px-6 py-4 text-sm text-slate-500">{{ med.frequency }}</td><td class="px-6 py-4 text-sm text-slate-500">{{ med.start_date }} to {{ med.end_date or 'Ongoing' }}</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}<p class="text-slate-500">No medications logged yet.</p>{% endif %}
+                    </div>
                 </div>
-            </div>
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                 <h3 class="text-xl font-semibold mb-4">Add New Medication</h3>
-                <form id="add-med-form" action="{{ url_for('add_medication') }}" method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 items-end">
-                    <div><label class="block text-sm font-medium">Drug Name</label><input type="text" id="drug_name_input" name="drug_name" class="mt-1 w-full px-3 py-2 border rounded-md" required></div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div><label class="block text-sm font-medium">Dosage</label><input type="number" step="any" name="dosage_amount" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
-                        <div><label class="block text-sm font-medium">Unit</label><input type="text" name="dosage_unit" class="mt-1 w-full px-3 py-2 border rounded-md" placeholder="e.g., mg, ml"></div>
-                    </div>
-                    <div><label class="block text-sm font-medium">Frequency</label><input type="text" name="frequency" class="mt-1 w-full px-3 py-2 border rounded-md" placeholder="e.g., Twice daily"></div>
-                    <div><label class="block text-sm font-medium">Start Date</label><input type="date" name="start_date" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
-                    <div><label class="block text-sm font-medium">End Date (optional)</label><input type="date" name="end_date" class="mt-1 w-full px-3 py-2 border rounded-md"></div>
-                    <div class="flex items-end"><button type="button" id="check-med-button" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Check</button></div>
-                </form>
-
-                <!-- NEW: Decoupled Pre-check Assistant -->
-                <div id="pre-check-assistant" class="hidden mt-6 p-4 rounded-lg bg-white border">
-                    <div class="flex items-start space-x-4">
-                        <div class="flex-shrink-0 text-center">
-                            <p class="text-sm font-medium text-slate-500">Predicted Risk</p>
-                            <div id="risk-display" class="w-20 h-20 mt-1 rounded-full flex items-center justify-center text-white font-bold text-2xl">
-                                <span id="risk-percent-text"></span>
+            {% else %}
+                <!-- Profile Edit Form -->
+                <div class="bg-white p-8 rounded-lg shadow-md">
+                     <h2 class="text-2xl font-semibold mb-6 border-b pb-4">Comprehensive Health Profile</h2>
+                     <form action="{{ url_for('profile') }}" method="post" class="space-y-6">
+                        <div>
+                            <h3 class="text-lg font-medium text-slate-800 mb-2">Personal Details</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-sm font-medium">Date of Birth</label><input type="date" name="dob" value="{{ patient.dob or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
+                                <div><label class="block text-sm font-medium">Gender</label><select name="gender" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="">Select...</option><option value="Male" {% if patient.gender == 'Male' %}selected{% endif %}>Male</option><option value="Female" {% if patient.gender == 'Female' %}selected{% endif %}>Female</option><option value="Other" {% if patient.gender == 'Other' %}selected{% endif %}>Other</option></select></div>
+                                <div><label class="block text-sm font-medium">Weight (kg)</label><input type="number" step="0.1" name="weight_kg" value="{{ patient.weight_kg or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
+                                <div><label class="block text-sm font-medium">Height (cm)</label><input type="number" name="height_cm" value="{{ patient.height_cm or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
+                                <div class="md:col-span-2"><label class="block text-sm font-medium">Emergency Contact</label><input type="text" name="emergency_contact" value="{{ patient.emergency_contact or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
                             </div>
                         </div>
-                        <div class="flex-grow">
-                            <h4 class="font-semibold text-lg text-slate-800">Assistant's Explanation (from Knowledge Base)</h4>
-                            <p id="assistant-explanation" class="text-slate-600 mt-1 whitespace-pre-wrap"></p>
+                        <div>
+                            <h3 class="text-lg font-medium text-slate-800 mb-2">Medical Conditions</h3>
+                            <div><label class="block text-sm font-medium">List any chronic or significant conditions</label><input type="text" name="conditions" value="{{ patient.conditions or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Diabetes, High Blood Pressure"></div>
                         </div>
-                    </div>
-                    <div id="confirmation-buttons" class="mt-4 pt-4 border-t flex justify-end space-x-3"></div>
+                        <div>
+                            <h3 class="text-lg font-medium text-slate-800 mb-2">Allergies</h3>
+                            <div><label class="block text-sm font-medium">Drug Allergies</label><input type="text" name="drug_allergies" value="{{ patient.drug_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Penicillin, Sulfa drugs"></div>
+                            <div><label class="block text-sm font-medium">Food Allergies</label><input type="text" name="food_allergies" value="{{ patient.food_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Peanuts, Shellfish"></div>
+                            <div><label class="block text-sm font-medium">Other Allergies</label><input type="text" name="other_allergies" value="{{ patient.other_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Latex, Pollen"></div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-medium text-slate-800 mb-2">Lifestyle Habits</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-sm font-medium">Smoking Status</label><select name="is_smoker" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="No" {% if patient.is_smoker == 'No' %}selected{% endif %}>No</option><option value="Yes" {% if patient.is_smoker == 'Yes' %}selected{% endif %}>Yes</option><option value="Former" {% if patient.is_smoker == 'Former' %}selected{% endif %}>Former</option></select></div>
+                                <div><label class="block text-sm font-medium">Alcohol Consumption</label><select name="alcohol_consumption" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="None" {% if patient.alcohol_consumption == 'None' %}selected{% endif %}>None</option><option value="Occasional" {% if patient.alcohol_consumption == 'Occasional' %}selected{% endif %}>Occasional</option><option value="Regular" {% if patient.alcohol_consumption == 'Regular' %}selected{% endif %}>Regular</option></select></div>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Save Profile</button>
+                     </form>
                 </div>
-                
-                <h3 class="text-xl font-semibold mb-4 border-t pt-6 mt-8">Current Medication Log</h3>
-                {% if medications %}
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-slate-200">
-                        <thead class="bg-slate-50"><tr><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Medicine</th><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Dosage</th><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Frequency</th><th class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Dates</th></tr></thead>
-                        <tbody class="bg-white divide-y divide-slate-200">
-                            {% for med in medications %}
-                            <tr><td class="px-6 py-4 whitespace-nowrap text-sm font-medium">{{ med.drug_name }}</td><td class="px-6 py-4 text-sm text-slate-500">{{ med.dosage_amount }} {{ med.dosage_unit }}</td><td class="px-6 py-4 text-sm text-slate-500">{{ med.frequency }}</td><td class="px-6 py-4 text-sm text-slate-500">{{ med.start_date }} to {{ med.end_date or 'Ongoing' }}</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}<p class="text-slate-500">No medications logged yet.</p>{% endif %}
-            </div>
-        </div>
-        {% endif %}
-
-        {% if page == 'profile' %}
-        <div class="bg-white p-8 rounded-lg shadow-md">
-            <h2 class="text-2xl font-semibold mb-6 border-b pb-4">Comprehensive Health Profile</h2>
-            <form action="{{ url_for('profile') }}" method="post" class="space-y-6">
-                <!-- Profile sections -->
-                <div>
-                    <h3 class="text-lg font-medium text-slate-800 mb-2">Personal Details</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-medium">Date of Birth</label><input type="date" name="dob" value="{{ patient.dob or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
-                        <div><label class="block text-sm font-medium">Gender</label><select name="gender" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="">Select...</option><option>Male</option><option>Female</option><option>Other</option></select></div>
-                        <div><label class="block text-sm font-medium">Weight (kg)</label><input type="number" step="0.1" name="weight_kg" value="{{ patient.weight_kg or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
-                        <div><label class="block text-sm font-medium">Height (cm)</label><input type="number" name="height_cm" value="{{ patient.height_cm or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
-                        <div class="md:col-span-2"><label class="block text-sm font-medium">Emergency Contact</label><input type="text" name="emergency_contact" value="{{ patient.emergency_contact or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
-                    </div>
-                </div>
-                <div><h3 class="text-lg font-medium">Medical Conditions</h3><input type="text" name="conditions" value="{{ patient.conditions or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Diabetes, High Blood Pressure"></div>
-                <div>
-                    <h3 class="text-lg font-medium">Allergies</h3>
-                    <div><label class="block text-sm font-medium">Drug Allergies</label><input type="text" name="drug_allergies" value="{{ patient.drug_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md" placeholder="e.g., Penicillin, Sulfa drugs"></div>
-                    <div><label class="block text-sm font-medium">Food Allergies</label><input type="text" name="food_allergies" value="{{ patient.food_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
-                    <div><label class="block text-sm font-medium">Other Allergies</label><input type="text" name="other_allergies" value="{{ patient.other_allergies or '' }}" class="mt-1 block w-full px-3 py-2 border rounded-md"></div>
-                </div>
-                <div>
-                    <h3 class="text-lg font-medium">Lifestyle Habits</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><label class="block text-sm font-medium">Smoking Status</label><select name="is_smoker" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="No">No</option><option value="Yes">Yes</option><option value="Former">Former</option></select></div>
-                        <div><label class="block text-sm font-medium">Alcohol Consumption</label><select name="alcohol_consumption" class="mt-1 block w-full px-3 py-2 border rounded-md"><option value="None">None</option><option value="Occasional">Occasional</option><option value="Regular">Regular</option></select></div>
-                    </div>
-                </div>
-                <button type="submit" class="w-full py-2 px-4 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700">Save Profile</button>
-            </form>
-        </div>
+            {% endif %}
         {% endif %}
     </div>
 
-    <!-- UPDATED JAVASCRIPT FOR DECOUPLED DISPLAY -->
+    <!-- JavaScript for Interactive Pre-check -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const checkButton = document.getElementById('check-med-button');
@@ -159,9 +200,7 @@
                 const medForm = document.getElementById('add-med-form');
                 const drugNameInput = document.getElementById('drug_name_input');
                 const assistantArea = document.getElementById('pre-check-assistant');
-                const riskDisplay = document.getElementById('risk-display');
-                const riskPercentText = document.getElementById('risk-percent-text');
-                const explanationText = document.getElementById('assistant-explanation');
+                const summaryText = document.getElementById('assistant-summary');
                 const confirmButtons = document.getElementById('confirmation-buttons');
 
                 checkButton.addEventListener('click', async function() {
@@ -169,9 +208,7 @@
                     if (!drugName) { alert('Please enter a drug name to check.'); return; }
 
                     assistantArea.classList.remove('hidden');
-                    riskPercentText.textContent = '...';
-                    explanationText.textContent = 'Assistant is checking your full profile...';
-                    riskDisplay.className = 'w-20 h-20 mt-1 rounded-full flex items-center justify-center text-white font-bold text-2xl bg-slate-400 animate-pulse';
+                    summaryText.textContent = 'Assistant is performing a holistic analysis...';
                     confirmButtons.innerHTML = '';
 
                     try {
@@ -183,21 +220,8 @@
                         if (!response.ok) throw new Error('Server error');
                         const data = await response.json();
                         
-                        // Update Risk Percentage Display
-                        riskDisplay.classList.remove('animate-pulse');
-                        riskPercentText.textContent = `${data.risk_percent}%`;
-                        if (data.risk_percent >= 70) {
-                            riskDisplay.className = riskDisplay.className.replace('bg-slate-400', 'bg-red-500');
-                        } else if (data.risk_percent >= 40) {
-                            riskDisplay.className = riskDisplay.className.replace('bg-slate-400', 'bg-yellow-500');
-                        } else {
-                            riskDisplay.className = riskDisplay.className.replace('bg-slate-400', 'bg-green-500');
-                        }
+                        summaryText.innerHTML = `<strong>Assistant:</strong> ${data.summary.replace(/\n/g, '<br>')}`;
 
-                        // Update Explanation
-                        explanationText.innerHTML = data.explanation.replace(/\n/g, '<br>');
-
-                        // Add Buttons
                         const cancelButton = document.createElement('button');
                         cancelButton.textContent = 'Cancel';
                         cancelButton.className = 'py-2 px-4 rounded-md font-medium text-slate-600 bg-slate-200 hover:bg-slate-300';
@@ -212,9 +236,7 @@
                             confirmButtons.appendChild(confirmButton);
                         }
                     } catch (error) {
-                        explanationText.textContent = 'Could not perform the check. Please try again.';
-                        riskPercentText.textContent = 'Err';
-                        riskDisplay.className = riskDisplay.className.replace('bg-slate-400', 'bg-red-500');
+                        summaryText.textContent = 'Could not perform the check. Please try again.';
                     }
                 });
             }

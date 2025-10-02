@@ -5,43 +5,38 @@ import sqlite3
 conn = sqlite3.connect('medicine_log.db')
 cursor = conn.cursor()
 
-print("Database connected. Resetting tables for the final application structure...")
+print("Database connected. Resetting tables for secure email-based authentication...")
 
-# Drop existing tables to ensure a clean slate
+# Drop existing tables to ensure a clean slate with the new structure
 cursor.execute('DROP TABLE IF EXISTS medications;')
 cursor.execute('DROP TABLE IF EXISTS patients;')
-print("Old tables, if any, have been removed.")
+print("Old tables dropped.")
 
-# Create the 'patients' table with the comprehensive profile schema
+# Create the 'patients' table with a new 'email' column for login
 cursor.execute('''
 CREATE TABLE patients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE, -- Email is now the unique identifier for login
     password_hash TEXT NOT NULL,
+    name TEXT, -- Name is now just a display field, not for login
     
-    -- Personal Details
+    -- All other profile fields remain the same
     dob TEXT,
     gender TEXT,
     weight_kg REAL,
     height_cm REAL,
     emergency_contact TEXT,
-
-    -- Medical History & Conditions
     conditions TEXT,
-    
-    -- Allergies
     drug_allergies TEXT,
     food_allergies TEXT,
     other_allergies TEXT,
-
-    -- Lifestyle
     is_smoker TEXT,
     alcohol_consumption TEXT
 );
 ''')
-print("Table 'patients' created successfully.")
+print("Table 'patients' created with secure email and password fields.")
 
-# Create the 'medications' table with detailed dosage fields
+# Recreate the 'medications' table
 cursor.execute('''
 CREATE TABLE medications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,10 +50,10 @@ CREATE TABLE medications (
     FOREIGN KEY (patient_id) REFERENCES patients (id)
 );
 ''')
-print("Table 'medications' created successfully.")
+print("Table 'medications' created.")
 
 conn.commit()
 conn.close()
 
-print("\nDatabase setup complete. The 'medicine_log.db' file is fresh and ready.")
+print("\nDatabase setup complete. The database is now ready for secure, email-based logins.")
 
