@@ -207,20 +207,50 @@
                     const drugName = drugNameInput.value.trim();
                     if (!drugName) { alert('Please enter a drug name to check.'); return; }
 
+                    // Get dosage information from form
+                    const dosageAmount = document.querySelector('input[name="dosage_amount"]').value;
+                    const dosageUnit = document.querySelector('input[name="dosage_unit"]').value;
+                    const frequency = document.querySelector('input[name="frequency"]').value;
+
                     assistantArea.classList.remove('hidden');
-                    summaryText.textContent = 'Assistant is performing a holistic analysis...';
+                    summaryText.textContent = 'Assistant is performing a holistic analysis including dosage validation...';
                     confirmButtons.innerHTML = '';
 
                     try {
                         const response = await fetch('/check_before_adding', {
                             method: 'POST',
                             headers: {'Content-Type': 'application/json'},
-                            body: JSON.stringify({ drug_name: drugName }),
+                            body: JSON.stringify({ 
+                                drug_name: drugName,
+                                dosage_amount: dosageAmount,
+                                dosage_unit: dosageUnit,
+                                frequency: frequency
+                            }),
                         });
                         if (!response.ok) throw new Error('Server error');
                         const data = await response.json();
                         
-                        summaryText.innerHTML = `<strong>Assistant:</strong> ${data.summary.replace(/\n/g, '<br>')}`;
+                        // Display main summary
+                        let summaryHTML = `<strong>Assistant:</strong> ${data.summary.replace(/\n/g, '<br>')}`;
+                        
+                        // Add dosage validation results
+                        if (data.dosage_validation && data.dosage_validation.warnings && data.dosage_validation.warnings.length > 0) {
+                            summaryHTML += '<br><br><strong>Dosage Safety Analysis:</strong><br>';
+                            data.dosage_validation.warnings.forEach(warning => {
+                                const warningClass = data.dosage_validation.is_safe ? 'text-yellow-600' : 'text-red-600';
+                                summaryHTML += `<span class="${warningClass}">⚠️ ${warning}</span><br>`;
+                            });
+                        }
+                        
+                        // Add dosage limits information
+                        if (data.dosage_validation && data.dosage_validation.max_daily) {
+                            summaryHTML += `<br><strong>Maximum Safe Daily Dose:</strong> ${data.dosage_validation.max_daily} ${data.dosage_validation.unit}`;
+                        }
+                        if (data.dosage_validation && data.dosage_validation.max_single) {
+                            summaryHTML += `<br><strong>Maximum Safe Single Dose:</strong> ${data.dosage_validation.max_single} ${data.dosage_validation.unit}`;
+                        }
+                        
+                        summaryText.innerHTML = summaryHTML;
 
                         const cancelButton = document.createElement('button');
                         cancelButton.textContent = 'Cancel';
@@ -234,6 +264,13 @@
                             confirmButton.className = 'py-2 px-4 rounded-md font-medium text-white bg-green-600 hover:bg-green-700';
                             confirmButton.onclick = () => { medForm.submit(); };
                             confirmButtons.appendChild(confirmButton);
+                        } else {
+                            // Show why it can't be added
+                            const reasonButton = document.createElement('button');
+                            reasonButton.textContent = 'Cannot Add - See Warnings Above';
+                            reasonButton.className = 'py-2 px-4 rounded-md font-medium text-white bg-red-600 cursor-not-allowed opacity-75';
+                            reasonButton.disabled = true;
+                            confirmButtons.appendChild(reasonButton);
                         }
                     } catch (error) {
                         summaryText.textContent = 'Could not perform the check. Please try again.';
