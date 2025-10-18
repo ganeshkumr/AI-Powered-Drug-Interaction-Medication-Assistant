@@ -1,0 +1,106 @@
+{
+  "triangular_conflicts": [
+    {
+      "drugs": ["metformin", "amlodipine", "ibuprofen"],
+      "conflict_type": "kidney_load",
+      "severity": "moderate",
+      "description": "Combined kidney stress from multiple medications",
+      "warning": "⚠️ Cumulative kidney load risk - monitor kidney function closely"
+    },
+    {
+      "drugs": ["warfarin", "aspirin", "ibuprofen"],
+      "conflict_type": "bleeding_risk",
+      "severity": "high",
+      "description": "Multiple blood-thinning medications increase bleeding risk",
+      "warning": "🚨 HIGH BLEEDING RISK - Do not combine these medications"
+    },
+    {
+      "drugs": ["lisinopril", "ibuprofen", "aspirin"],
+      "conflict_type": "kidney_function",
+      "severity": "moderate",
+      "description": "ACE inhibitor with NSAIDs reduces kidney function",
+      "warning": "⚠️ Kidney function may be reduced - monitor closely"
+    },
+    {
+      "drugs": ["metformin", "ibuprofen", "acetaminophen"],
+      "conflict_type": "liver_kidney_stress",
+      "severity": "moderate",
+      "description": "Multiple medications affecting liver and kidney function",
+      "warning": "⚠️ Combined liver and kidney stress - monitor function tests"
+    },
+    {
+      "drugs": ["atorvastatin", "warfarin", "aspirin"],
+      "conflict_type": "bleeding_muscle",
+      "severity": "high",
+      "description": "Statin muscle effects combined with bleeding risk",
+      "warning": "🚨 HIGH RISK - Bleeding and muscle damage potential"
+    },
+    {
+      "drugs": ["prednisone", "ibuprofen", "aspirin"],
+      "conflict_type": "stomach_bleeding",
+      "severity": "high",
+      "description": "Steroid increases NSAID stomach bleeding risk",
+      "warning": "🚨 HIGH STOMACH BLEEDING RISK - Avoid this combination"
+    },
+    {
+      "drugs": ["omeprazole", "warfarin", "aspirin"],
+      "conflict_type": "bleeding_interaction",
+      "severity": "moderate",
+      "description": "PPI may affect warfarin metabolism",
+      "warning": "⚠️ Bleeding risk - monitor INR levels closely"
+    },
+    {
+      "drugs": ["metformin", "lisinopril", "ibuprofen"],
+      "conflict_type": "kidney_function",
+      "severity": "high",
+      "description": "Triple kidney stress from diabetes, blood pressure, and pain medications",
+      "warning": "🚨 SEVERE KIDNEY STRESS - High risk of kidney damage"
+    },
+    {
+      "drugs": ["paclitaxel", "doxorubicin", "cisplatin"],
+      "conflict_type": "chemotherapy_toxicity",
+      "severity": "high",
+      "description": "Multiple chemotherapy agents increase toxicity",
+      "warning": "🚨 HIGH CHEMOTHERAPY TOXICITY - Requires medical supervision"
+    },
+    {
+      "drugs": ["methotrexate", "ibuprofen", "aspirin"],
+      "conflict_type": "toxicity_bleeding",
+      "severity": "high",
+      "description": "Methotrexate toxicity increased by NSAIDs",
+      "warning": "🚨 HIGH TOXICITY RISK - NSAIDs increase methotrexate levels"
+    }
+  ],
+  "drug_categories": {
+    "nsaids": ["ibuprofen", "aspirin", "naproxen", "diclofenac"],
+    "ace_inhibitors": ["lisinopril", "enalapril", "ramipril", "captopril"],
+    "statins": ["atorvastatin", "simvastatin", "lovastatin", "pravastatin"],
+    "blood_thinners": ["warfarin", "aspirin", "clopidogrel", "heparin"],
+    "diabetes_meds": ["metformin", "insulin", "glipizide", "pioglitazone"],
+    "chemotherapy": ["paclitaxel", "doxorubicin", "cisplatin", "methotrexate", "cyclophosphamide"],
+    "steroids": ["prednisone", "methylprednisolone", "dexamethasone"],
+    "ppi": ["omeprazole", "pantoprazole", "lansoprazole", "esomeprazole"]
+  },
+  "category_conflicts": {
+    "nsaids_ace_inhibitors": {
+      "severity": "moderate",
+      "description": "NSAIDs reduce ACE inhibitor effectiveness and increase kidney risk",
+      "warning": "⚠️ Reduced blood pressure control and increased kidney risk"
+    },
+    "nsaids_blood_thinners": {
+      "severity": "high",
+      "description": "NSAIDs increase bleeding risk when combined with blood thinners",
+      "warning": "🚨 HIGH BLEEDING RISK - Avoid NSAIDs with blood thinners"
+    },
+    "statins_blood_thinners": {
+      "severity": "moderate",
+      "description": "Statins may increase bleeding risk with blood thinners",
+      "warning": "⚠️ Increased bleeding risk - monitor closely"
+    },
+    "diabetes_meds_nsaids": {
+      "severity": "moderate",
+      "description": "NSAIDs may affect blood sugar control",
+      "warning": "⚠️ Monitor blood sugar levels closely"
+    }
+  }
+}

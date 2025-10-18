@@ -157,6 +157,230 @@ class DosageValidator:
 
 dosage_validator = DosageValidator('drug_dosage_limits.json')
 
+# --- Side Effects Database ---
+class SideEffectsDatabase:
+    def __init__(self, side_effects_file):
+        try:
+            with open(side_effects_file, 'r') as f:
+                self.side_effects = json.load(f)
+            print("[INFO] Side effects database initialized successfully.")
+        except Exception as e: 
+            print(f"[ERROR] Could not initialize side effects database: {e}")
+            self.side_effects = {}
+    
+    def get_side_effects(self, drug_name, patient_profile=None):
+        """Get side effects for a drug with personalized risk assessment"""
+        drug_key = drug_name.lower().strip()
+        
+        # Find matching drug
+        drug_info = None
+        for drug, info in self.side_effects.items():
+            if drug in drug_key or drug_key in drug:
+                drug_info = info
+                break
+        
+        if not drug_info:
+            return {"side_effects": [], "risk_warnings": []}
+        
+        side_effects = drug_info.get('common_side_effects', [])
+        serious_effects = drug_info.get('serious_side_effects', [])
+        risk_factors = drug_info.get('risk_factors', {})
+        
+        # Generate personalized risk warnings
+        risk_warnings = []
+        if patient_profile:
+            for risk_factor, warning in risk_factors.items():
+                if self._check_risk_factor(risk_factor, patient_profile):
+                    risk_warnings.append(f"⚠️ {warning}")
+        
+        return {
+            "side_effects": side_effects,
+            "serious_effects": serious_effects,
+            "risk_warnings": risk_warnings
+        }
+    
+    def _check_risk_factor(self, risk_factor, patient_profile):
+        """Check if patient has specific risk factors"""
+        if risk_factor == "age_65_plus":
+            return patient_profile.get('age', 0) >= 65
+        elif risk_factor == "age_60_plus":
+            return patient_profile.get('age', 0) >= 60
+        elif risk_factor == "age_80_plus":
+            return patient_profile.get('age', 0) >= 80
+        elif risk_factor == "kidney_disease":
+            conditions = patient_profile.get('conditions', '').lower()
+            return 'kidney' in conditions or 'renal' in conditions
+        elif risk_factor == "liver_disease":
+            conditions = patient_profile.get('conditions', '').lower()
+            return 'liver' in conditions or 'hepatic' in conditions
+        elif risk_factor == "heart_disease":
+            conditions = patient_profile.get('conditions', '').lower()
+            return 'heart' in conditions or 'cardiac' in conditions
+        elif risk_factor == "diabetes":
+            conditions = patient_profile.get('conditions', '').lower()
+            return 'diabetes' in conditions
+        elif risk_factor == "alcohol_use":
+            return patient_profile.get('alcohol_consumption', '').lower() in ['regular', 'occasional']
+        return False
+
+side_effects_db = SideEffectsDatabase('side_effects_database.json')
+
+# --- Multi-Drug Conflict Checker ---
+class MultiDrugConflictChecker:
+    def __init__(self, conflicts_file):
+        try:
+            with open(conflicts_file, 'r') as f:
+                self.conflicts_data = json.load(f)
+            print("[INFO] Multi-drug conflict checker initialized successfully.")
+        except Exception as e: 
+            print(f"[ERROR] Could not initialize multi-drug conflict checker: {e}")
+            self.conflicts_data = {"triangular_conflicts": [], "category_conflicts": {}}
+    
+    def check_triangular_conflicts(self, new_drug, existing_meds):
+        """Check for 3-drug conflicts (triangular conflicts)"""
+        conflicts = []
+        
+        if len(existing_meds) < 2:
+            return conflicts
+        
+        # Get all drug names
+        all_drugs = [med['drug_name'].lower().strip() for med in existing_meds] + [new_drug.lower().strip()]
+        
+        # Check each triangular conflict
+        for conflict in self.conflicts_data.get('triangular_conflicts', []):
+            conflict_drugs = [drug.lower().strip() for drug in conflict['drugs']]
+            
+            # Check if all 3 drugs in conflict are present
+            if all(drug in all_drugs for drug in conflict_drugs):
+                conflicts.append({
+                    'type': 'triangular',
+                    'drugs': conflict['drugs'],
+                    'severity': conflict['severity'],
+                    'description': conflict['description'],
+                    'warning': conflict['warning']
+                })
+        
+        return conflicts
+    
+    def check_category_conflicts(self, new_drug, existing_meds):
+        """Check for category-based conflicts"""
+        conflicts = []
+        
+        # Get drug categories
+        categories = self.conflicts_data.get('drug_categories', {})
+        
+        # Find categories for new drug
+        new_drug_categories = []
+        for category, drugs in categories.items():
+            if any(drug in new_drug.lower() for drug in drugs):
+                new_drug_categories.append(category)
+        
+        # Check against existing medications
+        for med in existing_meds:
+            med_categories = []
+            for category, drugs in categories.items():
+                if any(drug in med['drug_name'].lower() for drug in drugs):
+                    med_categories.append(category)
+            
+            # Check for category conflicts
+            for new_cat in new_drug_categories:
+                for existing_cat in med_categories:
+                    conflict_key = f"{new_cat}_{existing_cat}"
+                    reverse_key = f"{existing_cat}_{new_cat}"
+                    
+                    if conflict_key in self.conflicts_data.get('category_conflicts', {}):
+                        conflict_info = self.conflicts_data['category_conflicts'][conflict_key]
+                    elif reverse_key in self.conflicts_data.get('category_conflicts', {}):
+                        conflict_info = self.conflicts_data['category_conflicts'][reverse_key]
+                    else:
+                        continue
+                    
+                    conflicts.append({
+                        'type': 'category',
+                        'drugs': [new_drug, med['drug_name']],
+                        'severity': conflict_info['severity'],
+                        'description': conflict_info['description'],
+                        'warning': conflict_info['warning']
+                    })
+        
+        return conflicts
+
+multi_drug_checker = MultiDrugConflictChecker('multi_drug_conflicts.json')
+
+# --- Personalized Dosage Adjustment ---
+def calculate_personalized_dosage(drug_name, dosage_amount, patient_profile):
+    """Calculate personalized dosage based on patient profile"""
+    try:
+        dosage_amount = float(dosage_amount)
+    except (ValueError, TypeError):
+        return {"suggested_dose": dosage_amount, "adjustment_reason": "Invalid dosage amount"}
+    
+    # Get base dosage limits
+    dosage_validation = dosage_validator.validate_dosage(drug_name, dosage_amount, "mg", "daily")
+    max_daily = dosage_validation.get('max_daily', dosage_amount)
+    
+    # Calculate adjustment factors
+    adjustment_factor = 1.0
+    adjustment_reasons = []
+    
+    # Age-based adjustments
+    age = patient_profile.get('age', 0)
+    if age >= 80:
+        adjustment_factor *= 0.7
+        adjustment_reasons.append("Age 80+ (reduced metabolism)")
+    elif age >= 65:
+        adjustment_factor *= 0.8
+        adjustment_reasons.append("Age 65+ (reduced kidney function)")
+    elif age >= 60:
+        adjustment_factor *= 0.9
+        adjustment_reasons.append("Age 60+ (mild kidney function decline)")
+    
+    # Condition-based adjustments
+    conditions = patient_profile.get('conditions', '').lower()
+    
+    if 'kidney' in conditions or 'renal' in conditions:
+        adjustment_factor *= 0.75
+        adjustment_reasons.append("Kidney disease (reduced clearance)")
+    
+    if 'liver' in conditions or 'hepatic' in conditions:
+        adjustment_factor *= 0.8
+        adjustment_reasons.append("Liver disease (reduced metabolism)")
+    
+    if 'heart' in conditions or 'cardiac' in conditions:
+        adjustment_factor *= 0.85
+        adjustment_reasons.append("Heart disease (reduced tolerance)")
+    
+    # Weight-based adjustments
+    weight = patient_profile.get('weight_kg')
+    if weight:
+        try:
+            weight = float(weight)
+            if weight < 50:  # Underweight
+                adjustment_factor *= 0.8
+                adjustment_reasons.append("Low body weight (reduced tolerance)")
+            elif weight > 100:  # Overweight
+                adjustment_factor *= 1.1
+                adjustment_reasons.append("Higher body weight (increased clearance)")
+        except (ValueError, TypeError):
+            pass
+    
+    # Calculate suggested dose
+    suggested_dose = min(dosage_amount * adjustment_factor, max_daily)
+    
+    # Ensure minimum effective dose
+    min_effective_dose = max_daily * 0.5  # At least 50% of max dose
+    if suggested_dose < min_effective_dose:
+        suggested_dose = min_effective_dose
+        adjustment_reasons.append("Minimum effective dose maintained")
+    
+    return {
+        "suggested_dose": round(suggested_dose, 1),
+        "original_dose": dosage_amount,
+        "adjustment_factor": round(adjustment_factor, 2),
+        "adjustment_reasons": adjustment_reasons,
+        "max_safe_dose": max_daily
+    }
+
 # --- Helper, Validation & AI Functions ---
 def get_db_connection():
     conn = sqlite3.connect('medicine_log.db'); conn.row_factory = sqlite3.Row; return conn
@@ -296,8 +520,10 @@ def profile():
     return render_template('index.html', page='profile', patient=patient)
 
 # ... (The rest of your app.py file, including check_before_adding, add_medication, etc., remains the same)
-def get_holistic_context(new_drug, patient, existing_meds):
+def get_holistic_context(new_drug, patient, existing_meds, dosage_amount=None, dosage_unit=None, frequency=None):
     patient_age = calculate_age(patient.get('dob'))
+    patient['age'] = patient_age
+    
     context_str = f"Patient Profile: Name: {patient.get('name')}, Age: {patient_age}, Conditions: {patient.get('conditions')}, Allergies: {patient.get('drug_allergies')}, Smoker: {patient.get('is_smoker')}, Alcohol: {patient.get('alcohol_consumption')}.\n"
     context_str += f"Current Medications: {', '.join([med['drug_name'] for med in existing_meds]) if existing_meds else 'None'}.\n"
     context_str += f"New Drug to Analyze: {new_drug}.\n\n"
@@ -309,6 +535,49 @@ def get_holistic_context(new_drug, patient, existing_meds):
     else:
         context_str += "GNN Predicted Risk: Unable to calculate (model not available or no existing medications)\n\n"
     
+    # Add side effects information
+    side_effects_info = side_effects_db.get_side_effects(new_drug, patient)
+    if side_effects_info['side_effects']:
+        context_str += f"Common Side Effects of {new_drug}:\n"
+        for effect in side_effects_info['side_effects'][:3]:  # Limit to 3 most common
+            context_str += f"- {effect}\n"
+        context_str += "\n"
+    
+    if side_effects_info['risk_warnings']:
+        context_str += f"Personalized Risk Warnings for {patient.get('name')}:\n"
+        for warning in side_effects_info['risk_warnings']:
+            context_str += f"- {warning}\n"
+        context_str += "\n"
+    
+    # Add multi-drug conflict analysis
+    triangular_conflicts = multi_drug_checker.check_triangular_conflicts(new_drug, existing_meds)
+    category_conflicts = multi_drug_checker.check_category_conflicts(new_drug, existing_meds)
+    
+    if triangular_conflicts:
+        context_str += "Multi-Drug Conflict Analysis (Triangular Conflicts):\n"
+        for conflict in triangular_conflicts:
+            context_str += f"- {conflict['warning']}\n"
+            context_str += f"  Drugs involved: {', '.join(conflict['drugs'])}\n"
+            context_str += f"  Severity: {conflict['severity']}\n"
+        context_str += "\n"
+    
+    if category_conflicts:
+        context_str += "Category-Based Conflict Analysis:\n"
+        for conflict in category_conflicts:
+            context_str += f"- {conflict['warning']}\n"
+        context_str += "\n"
+    
+    # Add personalized dosage analysis
+    if dosage_amount:
+        dosage_analysis = calculate_personalized_dosage(new_drug, dosage_amount, patient)
+        context_str += f"Personalized Dosage Analysis:\n"
+        context_str += f"- Original dose: {dosage_analysis['original_dose']} mg\n"
+        context_str += f"- Suggested dose: {dosage_analysis['suggested_dose']} mg\n"
+        context_str += f"- Adjustment factor: {dosage_analysis['adjustment_factor']}\n"
+        if dosage_analysis['adjustment_reasons']:
+            context_str += f"- Adjustment reasons: {', '.join(dosage_analysis['adjustment_reasons'])}\n"
+        context_str += "\n"
+    
     context_str += "Known Pairwise Interactions from Database (for reference):\n"
     found_pairwise = False
     for med in existing_meds:
@@ -318,6 +587,7 @@ def get_holistic_context(new_drug, patient, existing_meds):
             context_str += f"- {interaction['drug_a']} and {interaction['drug_b']} ({interaction['severity']}): {interaction['interaction']}\n"
     if not found_pairwise: 
         context_str += "- No specific pairwise interactions were found in the knowledge base.\n"
+    
     return context_str
 
 def get_gnn_prediction(new_drug, existing_meds):
@@ -383,65 +653,90 @@ def get_gnn_prediction(new_drug, existing_meds):
 
 @app.route('/check_before_adding', methods=['POST'])
 def check_before_adding():
-    if 'patient_id' not in session: return jsonify({'error': 'User not logged in'}), 401
-    
-    data = request.json
-    new_drug = data['drug_name']
-    dosage_amount = data.get('dosage_amount', '')
-    dosage_unit = data.get('dosage_unit', '')
-    frequency = data.get('frequency', '')
-    
-    # Validate dosage first
-    dosage_validation = dosage_validator.validate_dosage(new_drug, dosage_amount, dosage_unit, frequency)
-    
-    conn = get_db_connection()
-    patient_data = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
-    patient = dict(patient_data)
-    existing_meds = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
-    conn.close()
-    
-    # Create enhanced context including dosage information
-    holistic_context = get_holistic_context(new_drug, patient, existing_meds)
-    
-    # Add dosage validation results to context
-    if dosage_amount and dosage_unit:
-        dosage_info = f"\nDosage Information:\n"
-        dosage_info += f"Drug: {new_drug}\n"
-        dosage_info += f"Amount: {dosage_amount} {dosage_unit}\n"
-        dosage_info += f"Frequency: {frequency or 'Not specified'}\n"
-        dosage_info += f"Calculated Daily Dosage: {dosage_validation.get('daily_dosage', 'N/A')} {dosage_validation.get('unit', '')}\n"
+    try:
+        if 'patient_id' not in session: 
+            return jsonify({'error': 'User not logged in'}), 401
         
-        if dosage_validation['warnings']:
-            dosage_info += f"Dosage Warnings:\n"
-            for warning in dosage_validation['warnings']:
-                dosage_info += f"- {warning}\n"
+        data = request.json
+        if not data or 'drug_name' not in data:
+            return jsonify({'error': 'Invalid request data'}), 400
+            
+        new_drug = data['drug_name']
+        dosage_amount = data.get('dosage_amount', '')
+        dosage_unit = data.get('dosage_unit', '')
+        frequency = data.get('frequency', '')
         
-        if dosage_validation['max_daily']:
-            dosage_info += f"Maximum Safe Daily Dose: {dosage_validation['max_daily']} {dosage_validation['unit']}\n"
-        if dosage_validation['max_single']:
-            dosage_info += f"Maximum Safe Single Dose: {dosage_validation['max_single']} {dosage_validation['unit']}\n"
+        # Validate dosage first
+        dosage_validation = dosage_validator.validate_dosage(new_drug, dosage_amount, dosage_unit, frequency)
         
-        holistic_context += dosage_info
-    
-    ai_summary = ask_local_llm(holistic_context)
-    summary_lines = ai_summary.split('\n')
-    verdict = summary_lines[-1]
-    
-    # Determine if medication can be added based on both interaction and dosage safety
-    interaction_safe = "SAFE TO ADD" in verdict
-    dosage_safe = dosage_validation['is_safe']
-    can_add = interaction_safe and dosage_safe
-    
-    main_summary = "\n".join(summary_lines[:-1])
-    
-    # Add dosage warnings to the response
-    response_data = {
-        'summary': main_summary, 
-        'can_add': can_add,
-        'dosage_validation': dosage_validation
-    }
-    
-    return jsonify(response_data)
+        conn = get_db_connection()
+        patient_data = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+        if not patient_data:
+            conn.close()
+            return jsonify({'error': 'Patient not found'}), 404
+            
+        patient = dict(patient_data)
+        existing_meds = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
+        conn.close()
+        
+        # Create enhanced context including all new features
+        holistic_context = get_holistic_context(new_drug, patient, existing_meds, dosage_amount, dosage_unit, frequency)
+        
+        # Add dosage validation results to context
+        if dosage_amount and dosage_unit:
+            dosage_info = f"\nDosage Information:\n"
+            dosage_info += f"Drug: {new_drug}\n"
+            dosage_info += f"Amount: {dosage_amount} {dosage_unit}\n"
+            dosage_info += f"Frequency: {frequency or 'Not specified'}\n"
+            dosage_info += f"Calculated Daily Dosage: {dosage_validation.get('daily_dosage', 'N/A')} {dosage_validation.get('unit', '')}\n"
+            
+            if dosage_validation['warnings']:
+                dosage_info += f"Dosage Warnings:\n"
+                for warning in dosage_validation['warnings']:
+                    dosage_info += f"- {warning}\n"
+            
+            if dosage_validation['max_daily']:
+                dosage_info += f"Maximum Safe Daily Dose: {dosage_validation['max_daily']} {dosage_validation['unit']}\n"
+            if dosage_validation['max_single']:
+                dosage_info += f"Maximum Safe Single Dose: {dosage_validation['max_single']} {dosage_validation['unit']}\n"
+            
+            holistic_context += dosage_info
+        
+        # Get AI summary with error handling
+        try:
+            ai_summary = ask_local_llm(holistic_context)
+            summary_lines = ai_summary.split('\n')
+            verdict = summary_lines[-1] if summary_lines else "Verdict: DO NOT ADD"
+        except Exception as e:
+            print(f"Error getting AI summary: {e}")
+            ai_summary = f"I apologize, but I'm having trouble connecting to the AI assistant right now. Please try again in a moment.\n\nVerdict: DO NOT ADD"
+            summary_lines = ai_summary.split('\n')
+            verdict = summary_lines[-1]
+        
+        # Determine if medication can be added based on both interaction and dosage safety
+        interaction_safe = "SAFE TO ADD" in verdict
+        dosage_safe = dosage_validation['is_safe']
+        can_add = interaction_safe and dosage_safe
+        
+        main_summary = "\n".join(summary_lines[:-1]) if len(summary_lines) > 1 else ai_summary
+        
+        # Add dosage warnings to the response
+        response_data = {
+            'summary': main_summary, 
+            'can_add': can_add,
+            'dosage_validation': dosage_validation
+        }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"Error in check_before_adding: {e}")
+        return jsonify({
+            'error': 'An error occurred while checking the medication',
+            'summary': 'I apologize, but there was an error processing your request. Please try again.',
+            'can_add': False,
+            'dosage_validation': {'is_safe': False, 'warnings': ['Error occurred during validation']}
+        }), 500
 
 @app.route('/add_medication', methods=['POST'])
 def add_medication():
@@ -481,6 +776,165 @@ def logout():
     flash("You have been logged out.", "info")
     return redirect(url_for('login'))
 
+# --- Live Health Monitoring Endpoints ---
+@app.route('/api/health-data')
+def get_health_data():
+    """Get live health data (simulated for demo)"""
+    if 'patient_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+    
+    # Simulate live health data
+    import random
+    from datetime import datetime, timedelta
+    
+    # Generate realistic health data
+    heart_rate = random.randint(65, 85)
+    steps = random.randint(8000, 12000)
+    calories = random.randint(200, 400)
+    
+    # Generate 7-day trend data
+    trend_data = []
+    for i in range(7):
+        date = datetime.now() - timedelta(days=6-i)
+        trend_data.append({
+            'date': date.strftime('%Y-%m-%d'),
+            'heart_rate': random.randint(70, 80),
+            'steps': random.randint(7000, 11000),
+            'calories': random.randint(180, 350)
+        })
+    
+    return jsonify({
+        'current': {
+            'heart_rate': heart_rate,
+            'steps': steps,
+            'calories': calories,
+            'timestamp': datetime.now().isoformat()
+        },
+        'trends': trend_data,
+        'status': 'connected'
+    })
+
+@app.route('/api/google-fit-auth')
+def google_fit_auth():
+    """Initiate Google Fit OAuth flow"""
+    if 'patient_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+    
+    # In a real implementation, this would redirect to Google OAuth
+    # For demo purposes, return instructions
+    return jsonify({
+        'message': 'Google Fit integration requires OAuth setup',
+        'instructions': [
+            '1. Install Google Fit app on your phone',
+            '2. Enable permissions for step counting and heart rate',
+            '3. The app will automatically sync data',
+            '4. Currently showing simulated data for demo'
+        ],
+        'demo_mode': True
+    })
+
+@app.route('/api/health-alerts')
+def get_health_alerts():
+    """Get health alerts based on current data"""
+    if 'patient_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+    
+    conn = get_db_connection()
+    patient_data = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+    conn.close()
+    
+    alerts = []
+    
+    # Check for medication-related alerts
+    medications = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
+    
+    # Example alerts based on patient profile
+    if patient_data['is_smoker'] == 'Yes':
+        alerts.append({
+            'type': 'warning',
+            'title': 'Smoking Alert',
+            'message': 'Smoking can affect medication effectiveness. Consider discussing with your doctor.',
+            'icon': '🚭'
+        })
+    
+    if patient_data['weight_kg'] and float(patient_data['weight_kg']) > 100:
+        alerts.append({
+            'type': 'info',
+            'title': 'Weight Consideration',
+            'message': 'Your weight may affect medication dosing. Monitor for any unusual effects.',
+            'icon': '⚖️'
+        })
+    
+    return jsonify({
+        'alerts': alerts,
+        'timestamp': datetime.now().isoformat()
+    })
+
+# --- Emergency Mode ---
+@app.route('/emergency-check', methods=['POST'])
+def emergency_check():
+    """Quick drug interaction check without full profile"""
+    try:
+        data = request.json
+        if not data or 'drug1' not in data or 'drug2' not in data:
+            return jsonify({'error': 'Please provide two drug names'}), 400
+        
+        drug1 = data['drug1'].strip()
+        drug2 = data['drug2'].strip()
+        
+        # Quick interaction check
+        interaction = rag_system.search_interaction(drug1, drug2)
+        
+        # Quick dosage check
+        dosage1 = dosage_validator.validate_dosage(drug1, data.get('dose1', ''), data.get('unit1', ''), '')
+        dosage2 = dosage_validator.validate_dosage(drug2, data.get('dose2', ''), data.get('unit2', ''), '')
+        
+        # Quick side effects check
+        side_effects1 = side_effects_db.get_side_effects(drug1)
+        side_effects2 = side_effects_db.get_side_effects(drug2)
+        
+        # Determine safety
+        is_safe = True
+        warnings = []
+        
+        if interaction:
+            is_safe = False
+            warnings.append(f"🚨 INTERACTION DETECTED: {interaction['interaction']}")
+        
+        if not dosage1['is_safe']:
+            is_safe = False
+            warnings.extend(dosage1['warnings'])
+        
+        if not dosage2['is_safe']:
+            is_safe = False
+            warnings.extend(dosage2['warnings'])
+        
+        # Generate quick response
+        if is_safe:
+            response = f"✅ SAFE: {drug1} and {drug2} appear safe to take together."
+        else:
+            response = f"⚠️ CAUTION: Potential risks detected between {drug1} and {drug2}."
+        
+        return jsonify({
+            'safe': is_safe,
+            'response': response,
+            'interaction': interaction,
+            'dosage_warnings': warnings,
+            'side_effects': {
+                'drug1': side_effects1['side_effects'][:2],
+                'drug2': side_effects2['side_effects'][:2]
+            },
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error in emergency check: {e}")
+        return jsonify({
+            'error': 'Emergency check failed',
+            'safe': False,
+            'response': 'Unable to perform emergency check. Please consult a healthcare professional.'
+        }), 500
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False, use_reloader=False)
 
