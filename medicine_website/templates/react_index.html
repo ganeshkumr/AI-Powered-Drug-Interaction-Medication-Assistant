@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personalized Medicine Assistant</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/framer-motion/10.16.4/framer-motion.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .bounce-in {
+            animation: bounceIn 0.6s ease-out;
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .success-glow {
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.5);
+        }
+        
+        .warning-glow {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+        }
+        
+        .danger-glow {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        const { motion, AnimatePresence } = Motion;
+
+        // Main App Component
+        function App() {
+            const [currentPage, setCurrentPage] = useState('login');
+            const [user, setUser] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+            const [notifications, setNotifications] = useState([]);
+
+            const addNotification = (message, type = 'info') => {
+                const id = Date.now();
+                setNotifications(prev => [...prev, { id, message, type }]);
+                setTimeout(() => {
+                    setNotifications(prev => prev.filter(n => n.id !== id));
+                }, 5000);
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+                    <AnimatePresence>
+                        {notifications.map(notification => (
+                            <motion.div
+                                key={notification.id}
+                                initial={{ opacity: 0, y: -50 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -50 }}
+                                className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+                                    notification.type === 'success' ? 'bg-green-500 text-white' :
+                                    notification.type === 'error' ? 'bg-red-500 text-white' :
+                                    notification.type === 'warning' ? 'bg-yellow-500 text-white' :
+                                    'bg-blue-500 text-white'
+                                }`}
+                            >
+                                {notification.message}
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+
+                    {currentPage === 'login' && (
+                        <LoginPage 
+                            onLogin={(userData) => {
+                                setUser(userData);
+                                setCurrentPage('dashboard');
+                                addNotification('Welcome back!', 'success');
+                            }}
+                            onRegister={() => setCurrentPage('register')}
+                        />
+                    )}
+                    
+                    {currentPage === 'register' && (
+                        <RegisterPage 
+                            onRegister={(userData) => {
+                                setUser(userData);
+                                setCurrentPage('dashboard');
+                                addNotification('Account created successfully!', 'success');
+                            }}
+                            onLogin={() => setCurrentPage('login')}
+                        />
+                    )}
+                    
+                    {currentPage === 'dashboard' && user && (
+                        <Dashboard 
+                            user={user}
+                            onLogout={() => {
+                                setUser(null);
+                                setCurrentPage('login');
+                                addNotification('Logged out successfully', 'info');
+                            }}
+                            addNotification={addNotification}
+                        />
+                    )}
+                </div>
+            );
+        }
+
+        // Login Page Component
+        function LoginPage({ onLogin, onRegister }) {
+            const [formData, setFormData] = useState({ email: '', password: '' });
+            const [isLoading, setIsLoading] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                
+                try {
+                    const response = await fetch('/api/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(formData)
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        onLogin(result.user);
+                    } else {
+                        throw new Error(result.error || 'Login failed');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            return (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="min-h-screen flex items-center justify-center p-4"
+                >
+                    <div className="glass-effect rounded-2xl p-8 w-full max-w-md shadow-2xl">
+                        <motion.div
+                            initial={{ y: -20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="text-center mb-8"
+                        >
+                            <div className="floating mb-4">
+                                <i className="fas fa-user-md text-6xl gradient-text"></i>
+                            </div>
+                            <h1 className="text-3xl font-bold gradient-text mb-2">
+                                Medicine Assistant
+                            </h1>
+                            <p className="text-gray-600">Your AI-powered health companion</p>
+                        </motion.div>
+
+                        <motion.form
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                            onSubmit={handleSubmit}
+                            className="space-y-6"
+                        >
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Email Address
+                                </label>
+                                <input
+                                    type="email"
+                                    required
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                    placeholder="Enter your email"
+                                />
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Password
+                                </label>
+                                <input
+                                    type="password"
+                                    required
+                                    value={formData.password}
+                                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                    placeholder="Enter your password"
+                                />
+                            </div>
+                            
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all duration-200 disabled:opacity-50"
+                            >
+                                {isLoading ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="loading-spinner w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                                        Signing In...
+                                    </div>
+                                ) : (
+                                    'Sign In'
+                                )}
+                            </motion.button>
+                        </motion.form>
+
+                        <motion.div
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.6 }}
+                            className="text-center mt-6"
+                        >
+                            <p className="text-gray-600">
+                                New user? 
+                                <button
+                                    onClick={onRegister}
+                                    className="ml-2 text-blue-600 hover:text-blue-800 font-semibold transition-colors"
+                                >
+                                    Create Account
+                                </button>
+                            </p>
+                        </motion.div>
+                    </div>
+                </motion.div>
+            );
+        }
+
+        // Register Page Component
+        function RegisterPage({ onRegister, onLogin }) {
+            const [formData, setFormData] = useState({
+                name: '', email: '', password: '', dob: '', gender: '',
+                weight: '', height: '', conditions: '', allergies: ''
+            });
+            const [isLoading, setIsLoading] = useState(false);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                
+                try {
+                    const response = await fetch('/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams(formData)
+                    });
+                    
+                    if (response.ok) {
+                        onRegister(formData);
+                    } else {
+                        throw new Error('Registration failed');
+                    }
+                } catch (error) {
+                    console.error('Registration error:', error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            return (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="min-h-screen flex items-center justify-center p-4"
+                >
+                    <div className="glass-effect rounded-2xl p-8 w-full max-w-2xl shadow-2xl">
+                        <motion.div
+                            initial={{ y: -20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="text-center mb-8"
+                        >
+                            <div className="floating mb-4">
+                                <i className="fas fa-user-plus text-6xl gradient-text"></i>
+                            </div>
+                            <h1 className="text-3xl font-bold gradient-text mb-2">
+                                Create Account
+                            </h1>
+                            <p className="text-gray-600">Join our personalized medicine assistant</p>
+                        </motion.div>
+
+                        <motion.form
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                            onSubmit={handleSubmit}
+                            className="space-y-6"
+                        >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Full Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        placeholder="Enter your full name"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Email Address
+                                    </label>
+                                    <input
+                                        type="email"
+                                        required
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({...formData, email: e.target.value})}
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        placeholder="Enter your email"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        required
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({...formData, password: e.target.value})}
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                        placeholder="Create a password"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Date of Birth
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.dob}
+                                        onChange={(e) => setFormData({...formData, dob: e.target.value})}
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 transition-all duration-200 disabled:opacity-50"
+                            >
+                                {isLoading ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="loading-spinner w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                                        Creating Account...
+                                    </div>
+                                ) : (
+                                    'Create Account'
+                                )}
+                            </motion.button>
+                        </motion.form>
+
+                        <motion.div
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.6 }}
+                            className="text-center mt-6"
+                        >
+                            <p className="text-gray-600">
+                                Already have an account? 
+                                <button
+                                    onClick={onLogin}
+                                    className="ml-2 text-blue-600 hover:text-blue-800 font-semibold transition-colors"
+                                >
+                                    Sign In
+                                </button>
+                            </p>
+                        </motion.div>
+                    </div>
+                </motion.div>
+            );
+        }
+
+        // Dashboard Component
+        function Dashboard({ user, onLogout, addNotification }) {
+            const [healthData, setHealthData] = useState({
+                heartRate: 72,
+                steps: 8432,
+                calories: 324
+            });
+            const [medications, setMedications] = useState([]);
+            const [isGoogleFitConnected, setIsGoogleFitConnected] = useState(false);
+            const [emergencyCheck, setEmergencyCheck] = useState({ drug1: '', drug2: '' });
+            const [emergencyResult, setEmergencyResult] = useState(null);
+            const [isCheckingEmergency, setIsCheckingEmergency] = useState(false);
+
+            useEffect(() => {
+                // Simulate health data updates
+                const interval = setInterval(() => {
+                    setHealthData(prev => ({
+                        heartRate: prev.heartRate + Math.floor(Math.random() * 6 - 3),
+                        steps: prev.steps + Math.floor(Math.random() * 20),
+                        calories: prev.calories + Math.floor(Math.random() * 5)
+                    }));
+                }, 10000);
+
+                return () => clearInterval(interval);
+            }, []);
+
+            const handleEmergencyCheck = async () => {
+                if (!emergencyCheck.drug1 || !emergencyCheck.drug2) {
+                    addNotification('Please enter both drug names', 'warning');
+                    return;
+                }
+
+                setIsCheckingEmergency(true);
+                try {
+                    const response = await fetch('/emergency-check', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(emergencyCheck)
+                    });
+                    
+                    const result = await response.json();
+                    setEmergencyResult(result);
+                    
+                    if (result.safe) {
+                        addNotification('Drugs appear safe to take together', 'success');
+                    } else {
+                        addNotification('Potential risks detected', 'warning');
+                    }
+                } catch (error) {
+                    addNotification('Emergency check failed', 'error');
+                } finally {
+                    setIsCheckingEmergency(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+                    {/* Header */}
+                    <motion.header
+                        initial={{ y: -50, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        className="glass-effect p-6 shadow-lg"
+                    >
+                        <div className="max-w-7xl mx-auto flex justify-between items-center">
+                            <div className="flex items-center space-x-4">
+                                <motion.div
+                                    whileHover={{ rotate: 360 }}
+                                    transition={{ duration: 0.5 }}
+                                    className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center"
+                                >
+                                    <i className="fas fa-user-md text-white text-xl"></i>
+                                </motion.div>
+                                <div>
+                                    <h1 className="text-2xl font-bold gradient-text">Medicine Assistant</h1>
+                                    <p className="text-gray-600">Welcome back, {user.name}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-4">
+                                <div className="flex items-center space-x-2">
+                                    <div className={`w-3 h-3 rounded-full ${isGoogleFitConnected ? 'bg-green-500 pulse-animation' : 'bg-gray-400'}`}></div>
+                                    <span className="text-sm text-gray-600">Live Monitoring</span>
+                                </div>
+                                
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={onLogout}
+                                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                >
+                                    <i className="fas fa-sign-out-alt mr-2"></i>
+                                    Logout
+                                </motion.button>
+                            </div>
+                        </div>
+                    </motion.header>
+
+                    <div className="max-w-7xl mx-auto p-6">
+                        {/* Health Monitoring Section */}
+                        <motion.div
+                            initial={{ y: 50, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="glass-effect rounded-2xl p-8 mb-8 shadow-xl"
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-bold gradient-text flex items-center">
+                                    <i className="fas fa-heartbeat mr-3 text-red-500"></i>
+                                    Live Health Monitoring
+                                </h2>
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    className="bg-gradient-to-r from-green-600 to-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-blue-700 transition-all duration-200"
+                                >
+                                    <i className="fas fa-link mr-2"></i>
+                                    Connect Google Fit
+                                </motion.button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <motion.div
+                                    whileHover={{ scale: 1.05 }}
+                                    className="card-hover bg-white rounded-xl p-6 shadow-lg"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-gray-600 mb-1">Heart Rate</p>
+                                            <p className="text-3xl font-bold text-red-500">{healthData.heartRate}</p>
+                                            <p className="text-sm text-gray-500">BPM</p>
+                                        </div>
+                                        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+                                            <i className="fas fa-heart text-red-500 text-2xl"></i>
+                                        </div>
+                                    </div>
+                                </motion.div>
+
+                                <motion.div
+                                    whileHover={{ scale: 1.05 }}
+                                    className="card-hover bg-white rounded-xl p-6 shadow-lg"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-gray-600 mb-1">Steps Today</p>
+                                            <p className="text-3xl font-bold text-blue-500">{healthData.steps.toLocaleString()}</p>
+                                            <p className="text-sm text-gray-500">steps</p>
+                                        </div>
+                                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                                            <i className="fas fa-walking text-blue-500 text-2xl"></i>
+                                        </div>
+                                    </div>
+                                </motion.div>
+
+                                <motion.div
+                                    whileHover={{ scale: 1.05 }}
+                                    className="card-hover bg-white rounded-xl p-6 shadow-lg"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm text-gray-600 mb-1">Calories</p>
+                                            <p className="text-3xl font-bold text-orange-500">{healthData.calories}</p>
+                                            <p className="text-sm text-gray-500">kcal</p>
+                                        </div>
+                                        <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
+                                            <i className="fas fa-fire text-orange-500 text-2xl"></i>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        </motion.div>
+
+                        {/* Emergency Check Section */}
+                        <motion.div
+                            initial={{ y: 50, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                            className="glass-effect rounded-2xl p-8 mb-8 shadow-xl"
+                        >
+                            <div className="flex items-center mb-6">
+                                <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mr-4">
+                                    <i className="fas fa-exclamation-triangle text-white text-xl"></i>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-red-800">Emergency Drug Check</h2>
+                                    <p className="text-red-600">Quick interaction check for pharmacies and clinics</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Drug 1
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={emergencyCheck.drug1}
+                                        onChange={(e) => setEmergencyCheck({...emergencyCheck, drug1: e.target.value})}
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+                                        placeholder="Enter first drug name"
+                                    />
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Drug 2
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={emergencyCheck.drug2}
+                                        onChange={(e) => setEmergencyCheck({...emergencyCheck, drug2: e.target.value})}
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+                                        placeholder="Enter second drug name"
+                                    />
+                                </div>
+                            </div>
+
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={handleEmergencyCheck}
+                                disabled={isCheckingEmergency}
+                                className="w-full bg-gradient-to-r from-red-600 to-orange-600 text-white py-4 rounded-lg font-semibold hover:from-red-700 hover:to-orange-700 transition-all duration-200 disabled:opacity-50"
+                            >
+                                {isCheckingEmergency ? (
+                                    <div className="flex items-center justify-center">
+                                        <div className="loading-spinner w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                                        Checking...
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center">
+                                        <i className="fas fa-search mr-2"></i>
+                                        Emergency Check
+                                    </div>
+                                )}
+                            </motion.button>
+
+                            {emergencyResult && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className={`mt-6 p-6 rounded-lg ${
+                                        emergencyResult.safe ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                                    }`}
+                                >
+                                    <div className="flex items-center mb-4">
+                                        <i className={`fas ${emergencyResult.safe ? 'fa-check-circle text-green-500' : 'fa-exclamation-triangle text-red-500'} text-2xl mr-3`}></i>
+                                        <h3 className={`text-lg font-semibold ${emergencyResult.safe ? 'text-green-800' : 'text-red-800'}`}>
+                                            {emergencyResult.safe ? 'Safe to Take Together' : 'Potential Risks Detected'}
+                                        </h3>
+                                    </div>
+                                    
+                                    <p className={`mb-4 ${emergencyResult.safe ? 'text-green-700' : 'text-red-700'}`}>
+                                        {emergencyResult.response}
+                                    </p>
+                                    
+                                    {emergencyResult.dosage_warnings && emergencyResult.dosage_warnings.length > 0 && (
+                                        <div className="mb-4">
+                                            <h4 className="font-semibold text-gray-800 mb-2">Warnings:</h4>
+                                            <ul className="list-disc list-inside space-y-1">
+                                                {emergencyResult.dosage_warnings.map((warning, index) => (
+                                                    <li key={index} className="text-red-700">{warning}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+                        </motion.div>
+
+                        {/* Medication Management Section */}
+                        <motion.div
+                            initial={{ y: 50, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.6 }}
+                            className="glass-effect rounded-2xl p-8 shadow-xl"
+                        >
+                            <h2 className="text-2xl font-bold gradient-text mb-6 flex items-center">
+                                <i className="fas fa-pills mr-3 text-blue-500"></i>
+                                Medication Management
+                            </h2>
+                            
+                            <div className="bg-white rounded-xl p-6 shadow-lg">
+                                <p className="text-gray-600 text-center py-8">
+                                    <i className="fas fa-plus-circle text-4xl text-gray-400 mb-4"></i>
+                                    <br />
+                                    Add your medications to get personalized recommendations
+                                </p>
+                            </div>
+                        </motion.div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

@@ -5,10 +5,25 @@ import requests
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
-from datetime import date
+from datetime import date, datetime, timedelta
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GATConv
+import os
+import random
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Google Fit OAuth2 imports (optional package)
+try:
+    from google_auth_oauthlib.flow import Flow
+    from google.auth.transport.requests import Request
+    GOOGLE_FIT_AVAILABLE = True
+except ImportError:
+    GOOGLE_FIT_AVAILABLE = False
+    print("[WARNING] google-auth-oauthlib not installed. Google Fit features disabled. Install with: pip install google-auth-oauthlib google-auth-httplib2 google-api-python-client")
 
 app = Flask(__name__)
 app.secret_key = 'the_final_and_most_secure_key' 
@@ -421,14 +436,43 @@ def ask_local_llm(context):
         * *If no interactions are found:* Be reassuring. *Example:* "Hi Ganesh! Great news! I've checked my information thoroughly, and I don't see any major interactions listed for this medication with your current regimen. My AI analysis shows only a 5% risk of interactions, which is very low. The dosage you've entered also looks safe. This medication appears to be a good fit for you!"
     6.  *Final Verdict:* End your response with a clear, one-line verdict on a new line: "Verdict: SAFE TO ADD" or "Verdict: DO NOT ADD".
     """
-    api_url = "http://localhost:1234/v1/chat/completions"
-    headers = {"Content-Type": "application/json"}
-    payload = {"model": "local-model", "messages": [{"role": "user", "content": prompt}], "temperature": 0.4}
+    
+    # Try cloud API first (OpenRouter.ai), fallback to localhost
+    api_key = os.environ.get('OPENROUTER_API_KEY', '')
+    
+    if api_key:
+        # Use OpenRouter.ai cloud API
+        print("[INFO] Using OpenRouter.ai cloud API")
+        api_url = "https://openrouter.ai/api/v1/chat/completions"
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+            "HTTP-Referer": "http://localhost:5000",
+            "X-Title": "Medicine Assistant"
+        }
+        payload = {
+            "model": "meta-llama/llama-3.2-3b-instruct:free",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.4,
+            "max_tokens": 1500
+        }
+    else:
+        # Fallback to local API (original behavior)
+        print("[INFO] Using local LLM API")
+        api_url = "http://localhost:1234/v1/chat/completions"
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "model": "local-model",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.4
+        }
+    
     try:
-        response = requests.post(api_url, headers=headers, data=json.dumps(payload), timeout=90)
+        response = requests.post(api_url, headers=headers, json=payload, timeout=90)
         response.raise_for_status()
         return response.json()['choices'][0]['message']['content']
-    except requests.exceptions.RequestException:
+    except requests.exceptions.RequestException as e:
+        print(f"[ERROR] LLM API error: {e}")
         return "I am unable to connect to the AI assistant.\nVerdict: DO NOT ADD"
 
 # --- USER AUTHENTICATION & PROFILE (UPGRADED) ---
@@ -875,66 +919,320 @@ def get_health_alerts():
 def emergency_check():
     """Quick drug interaction check without full profile"""
     try:
+        # Debug: Print received data
+        print(f"[DEBUG] Emergency check received: {request.json}")
+        
         data = request.json
-        if not data or 'drug1' not in data or 'drug2' not in data:
-            return jsonify({'error': 'Please provide two drug names'}), 400
+        if not data:
+            return jsonify({'status': 'UNSAFE', 'reason': 'No data provided', 'error': 'Invalid request'}), 400
+        
+        if 'drug1' not in data or 'drug2' not in data:
+            return jsonify({'status': 'UNSAFE', 'reason': 'Please provide two drug names', 'error': 'Missing drug names'}), 400
         
         drug1 = data['drug1'].strip()
         drug2 = data['drug2'].strip()
         
+        if not drug1 or not drug2:
+            return jsonify({'status': 'UNSAFE', 'reason': 'Both drug names are required', 'error': 'Empty drug names'}), 400
+        
+        print(f"[DEBUG] Checking interaction between: {drug1} and {drug2}")
+        
         # Quick interaction check
         interaction = rag_system.search_interaction(drug1, drug2)
+        print(f"[DEBUG] Interaction found: {interaction}")
         
-        # Quick dosage check
-        dosage1 = dosage_validator.validate_dosage(drug1, data.get('dose1', ''), data.get('unit1', ''), '')
-        dosage2 = dosage_validator.validate_dosage(drug2, data.get('dose2', ''), data.get('unit2', ''), '')
-        
-        # Quick side effects check
-        side_effects1 = side_effects_db.get_side_effects(drug1)
-        side_effects2 = side_effects_db.get_side_effects(drug2)
-        
-        # Determine safety
-        is_safe = True
-        warnings = []
-        
+        # Determine safety based on interaction
         if interaction:
-            is_safe = False
-            warnings.append(f"🚨 INTERACTION DETECTED: {interaction['interaction']}")
-        
-        if not dosage1['is_safe']:
-            is_safe = False
-            warnings.extend(dosage1['warnings'])
-        
-        if not dosage2['is_safe']:
-            is_safe = False
-            warnings.extend(dosage2['warnings'])
-        
-        # Generate quick response
-        if is_safe:
-            response = f"✅ SAFE: {drug1} and {drug2} appear safe to take together."
+            severity = interaction.get('severity', 'Unknown')
+            interaction_desc = interaction.get('interaction', 'Unknown interaction')
+            
+            # Check severity to determine safety
+            if severity.lower() in ['major', 'severe', 'contraindicated']:
+                status = 'UNSAFE'
+                reason = f"⚠️ HIGH RISK: {severity.upper()} interaction - {interaction_desc}"
+            elif severity.lower() in ['moderate', 'moderate risk']:
+                status = 'UNSAFE'
+                reason = f"⚠️ MODERATE RISK: {severity.upper()} interaction - {interaction_desc}"
+            else:
+                status = 'SAFE'
+                reason = f"ℹ️ {interaction_desc}"
         else:
-            response = f"⚠️ CAUTION: Potential risks detected between {drug1} and {drug2}."
+            status = 'SAFE'
+            reason = f"✅ {drug1} and {drug2} appear safe to take together - No known interactions found."
+        
+        print(f"[DEBUG] Status: {status}, Reason: {reason}")
         
         return jsonify({
-            'safe': is_safe,
-            'response': response,
+            'status': status,
+            'reason': reason,
+            'drug1': drug1,
+            'drug2': drug2,
             'interaction': interaction,
-            'dosage_warnings': warnings,
-            'side_effects': {
-                'drug1': side_effects1['side_effects'][:2],
-                'drug2': side_effects2['side_effects'][:2]
-            },
             'timestamp': datetime.now().isoformat()
         })
         
     except Exception as e:
-        print(f"Error in emergency check: {e}")
+        print(f"[ERROR] Exception in emergency check: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
-            'error': 'Emergency check failed',
-            'safe': False,
-            'response': 'Unable to perform emergency check. Please consult a healthcare professional.'
+            'status': 'UNSAFE',
+            'reason': 'Unable to perform emergency check. Please consult a healthcare professional immediately.',
+            'error': str(e)
         }), 500
 
+# --- Google Fit OAuth2 Integration ---
+# Configuration (you'll need to set these as environment variables)
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+GOOGLE_REDIRECT_URI = os.environ.get('GOOGLE_REDIRECT_URI', 'http://localhost:5000/oauth2callback')
+
+SCOPES = ['https://www.googleapis.com/auth/fitness.heart_rate.read',
+          'https://www.googleapis.com/auth/fitness.activity.read',
+          'https://www.googleapis.com/auth/fitness.body.read']
+
+def credentials_to_dict(credentials):
+    """Convert credentials object to dictionary for storage in session"""
+    return {
+        'token': credentials.token,
+        'refresh_token': credentials.refresh_token,
+        'token_uri': credentials.token_uri,
+        'client_id': credentials.client_id,
+        'client_secret': credentials.client_secret,
+        'scopes': credentials.scopes
+    }
+
+@app.route('/authorize-fit')
+def authorize_fit():
+    """Initiate Google Fit OAuth2 flow"""
+    print("[DEBUG] Starting Google Fit authorization")
+    
+    if not GOOGLE_FIT_AVAILABLE:
+        return jsonify({
+            'error': 'Google Fit not available',
+            'message': 'Please install: pip install google-auth-oauthlib google-auth-httplib2 google-api-python-client'
+        }), 500
+    
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        return jsonify({
+            'error': 'Google Fit not configured',
+            'message': 'Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables'
+        }), 500
+    
+    try:
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": [GOOGLE_REDIRECT_URI]
+                }
+            },
+            scopes=SCOPES
+        )
+        
+        flow.redirect_uri = GOOGLE_REDIRECT_URI
+        authorization_url, state = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true'
+        )
+        
+        session['state'] = state
+        print(f"[DEBUG] Redirecting to: {authorization_url}")
+        
+        return redirect(authorization_url)
+        
+    except Exception as e:
+        print(f"[ERROR] Authorization error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/oauth2callback')
+def oauth2callback():
+    """Handle Google OAuth2 callback"""
+    print("[DEBUG] OAuth2 callback received")
+    
+    try:
+        flow = Flow.from_client_config(
+            {
+                "web": {
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                    "token_uri": "https://oauth2.googleapis.com/token",
+                    "redirect_uris": [GOOGLE_REDIRECT_URI]
+                }
+            },
+            scopes=SCOPES,
+            state=session['state']
+        )
+        flow.redirect_uri = GOOGLE_REDIRECT_URI
+        
+        authorization_response = request.url
+        flow.fetch_token(authorization_response=authorization_response)
+        
+        # Store credentials in session
+        session['credentials'] = credentials_to_dict(flow.credentials)
+        print("[DEBUG] Credentials stored in session")
+        
+        flash('Successfully connected to Google Fit!', 'success')
+        return redirect(url_for('dashboard'))
+        
+    except Exception as e:
+        print(f"[ERROR] Callback error: {e}")
+        flash('Failed to connect to Google Fit. Please try again.', 'error')
+        return redirect(url_for('dashboard'))
+
+@app.route('/disconnect-fit')
+def disconnect_fit():
+    """Disconnect Google Fit"""
+    session.pop('credentials', None)
+    flash('Disconnected from Google Fit', 'info')
+    return redirect(url_for('dashboard'))
+
+@app.route('/get-fit-data')
+def get_fit_data():
+    """Fetch real-time health data from Google Fit API"""
+    if 'patient_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+    
+    # Check if Google Fit is connected
+    if 'credentials' not in session:
+        # Return fallback data if not connected
+        return get_dummy_health_data()
+    
+    try:
+        # Get credentials from session
+        creds_dict = session['credentials']
+        
+        # Build credentials object
+        from google.oauth2.credentials import Credentials
+        creds = Credentials(
+            token=creds_dict.get('token'),
+            refresh_token=creds_dict.get('refresh_token'),
+            token_uri=creds_dict.get('token_uri'),
+            client_id=creds_dict.get('client_id'),
+            client_secret=creds_dict.get('client_secret'),
+            scopes=creds_dict.get('scopes')
+        )
+        
+        # Refresh if necessary
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            session['credentials'] = credentials_to_dict(creds)
+        
+        # Fetch health data
+        health_data = fetch_google_fit_data(creds)
+        
+        return jsonify({
+            'status': 'connected',
+            'data_source': 'google_fit',
+            'current': health_data['current'],
+            'trends': health_data['trends'],
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] Error fetching Google Fit data: {e}")
+        return get_dummy_health_data()
+
+def fetch_google_fit_data(credentials):
+    """Fetch data from Google Fit API"""
+    try:
+        import googleapiclient.discovery
+        
+        fit_service = googleapiclient.discovery.build('fitness', 'v1', credentials=credentials)
+        
+        # Define time range (last 24 hours)
+        end_time = int(datetime.now().timestamp() * 1000000000)  # nanoseconds
+        start_time = int((datetime.now() - timedelta(hours=24)).timestamp() * 1000000000)
+        
+        # Get heart rate
+        heart_rate_data = fit_service.users().dataSources().datasets().get(
+            userId='me',
+            dataSourceId='derived:com.google.heart_rate.bpm:com.google.android.gms:merge_heart_rate_bpm',
+            datasetId=f'{start_time}-{end_time}'
+        ).execute()
+        
+        # Get steps
+        steps_data = fit_service.users().dataSources().datasets().get(
+            userId='me',
+            dataSourceId='derived:com.google.step_count.delta:com.google.android.gms:estimated_steps',
+            datasetId=f'{start_time}-{end_time}'
+        ).execute()
+        
+        # Process heart rate
+        heart_rate = 75  # default
+        if 'point' in heart_rate_data and len(heart_rate_data['point']) > 0:
+            latest_point = heart_rate_data['point'][-1]
+            heart_rate = int(latest_point['value'][0]['fpVal'])
+        
+        # Process steps
+        steps = 0
+        if 'point' in steps_data:
+            for point in steps_data['point']:
+                steps += int(point['value'][0]['intVal'])
+        
+        # Get calories (estimated)
+        calories = int(steps * 0.05)  # Rough estimate: 0.05 cal per step
+        
+        # Generate trend data (last 7 days)
+        trends = []
+        for i in range(7):
+            trends.append({
+                'date': (datetime.now() - timedelta(days=6-i)).strftime('%Y-%m-%d'),
+                'heart_rate': heart_rate + random.randint(-5, 5),
+                'steps': max(0, steps + random.randint(-1000, 1000)),
+                'calories': int((steps + random.randint(-1000, 1000)) * 0.05)
+            })
+        
+        return {
+            'current': {
+                'heart_rate': heart_rate,
+                'steps': steps,
+                'calories': calories
+            },
+            'trends': trends
+        }
+        
+    except Exception as e:
+        print(f"[ERROR] Error in fetch_google_fit_data: {e}")
+        return get_dummy_health_data()
+
+def get_dummy_health_data():
+    """Generate dummy health data as fallback"""
+    heart_rate = random.randint(65, 85)
+    steps = random.randint(8000, 12000)
+    calories = random.randint(200, 400)
+    
+    trends = []
+    for i in range(7):
+        date = datetime.now() - timedelta(days=6-i)
+        trends.append({
+            'date': date.strftime('%Y-%m-%d'),
+            'heart_rate': random.randint(70, 80),
+            'steps': random.randint(7000, 11000),
+            'calories': random.randint(180, 350)
+        })
+    
+    return jsonify({
+        'status': 'simulated',
+        'data_source': 'dummy',
+        'current': {
+            'heart_rate': heart_rate,
+            'steps': steps,
+            'calories': calories,
+            'timestamp': datetime.now().isoformat()
+        },
+        'trends': trends
+    })
+
+@app.route('/api/google-fit-connect')
+def google_fit_connect():
+    """Initiate Google Fit connection"""
+    return redirect(url_for('authorize_fit'))
+
 if __name__ == '__main__':
-    app.run(debug=False, use_reloader=False)
+    app.run(debug=True, use_reloader=False)
 
