@@ -795,24 +795,49 @@ def add_medication():
 
 @app.route('/ask_assistant', methods=['POST'])
 def ask_assistant():
-    if 'patient_id' not in session: return redirect(url_for('login'))
+    """AI Assistant endpoint - now returns JSON for chatbot"""
+    if 'patient_id' not in session:
+        return jsonify({'error': 'Not logged in'}), 401
     
-    question = request.form['question']
-    conn = get_db_connection()
-    patient_data = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
-    patient = dict(patient_data)
-    existing_meds = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
-    
-    new_drug_match = re.search(r'(take|about|check) ([\w\s-]+)\?*$', question.lower())
-    topic_to_check = new_drug_match.group(2).strip() if new_drug_match else question
-
-    holistic_context = get_holistic_context(topic_to_check, patient, existing_meds)
-    ai_response = ask_local_llm(holistic_context)
-    
-    patient['age'] = calculate_age(patient.get('dob'))
-    medications = conn.execute('SELECT * FROM medications WHERE patient_id = ? ORDER BY drug_name', (session['patient_id'],)).fetchall()
-    conn.close()
-    return render_template('index.html', page='dashboard', patient=patient, medications=medications, ai_response=ai_response.split('\nVerdict:')[0])
+    try:
+        data = request.json
+        question = data.get('question', '')
+        
+        if not question:
+            return jsonify({'error': 'No question provided'}), 400
+        
+        conn = get_db_connection()
+        patient_data = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+        patient = dict(patient_data)
+        existing_meds = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
+        conn.close()
+        
+        # Extract drug name if asking about a specific drug
+        new_drug_match = re.search(r'(take|about|check|add)\s+([\w\s-]+)\??', question.lower())
+        topic_to_check = new_drug_match.group(2).strip() if new_drug_match else question
+        
+        # Build context with GNN prediction
+        holistic_context = get_holistic_context(topic_to_check, patient, existing_meds)
+        
+        # Get AI response
+        ai_response = ask_local_llm(holistic_context)
+        
+        # Extract verdict if present
+        response_parts = ai_response.split('\nVerdict:')
+        main_response = response_parts[0].strip()
+        verdict = response_parts[1].strip() if len(response_parts) > 1 else None
+        
+        return jsonify({
+            'response': main_response,
+            'verdict': verdict,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"[ERROR] AI Assistant error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to process question'}), 500
 
 @app.route('/logout')
 def logout():
@@ -917,9 +942,8 @@ def get_health_alerts():
 # --- Emergency Mode ---
 @app.route('/emergency-check', methods=['POST'])
 def emergency_check():
-    """Quick drug interaction check without full profile"""
+    """Quick drug interaction check with GNN prediction and detailed cause"""
     try:
-        # Debug: Print received data
         print(f"[DEBUG] Emergency check received: {request.json}")
         
         data = request.json
@@ -937,9 +961,28 @@ def emergency_check():
         
         print(f"[DEBUG] Checking interaction between: {drug1} and {drug2}")
         
-        # Quick interaction check
+        # Get GNN prediction
+        gnn_risk = 0.0
+        if gnn_model and drug_map:
+            try:
+                # Create a mock medication list for GNN prediction
+                mock_meds = [{'drug_name': drug2}]
+                gnn_risk = get_gnn_prediction(drug1, mock_meds)
+                print(f"[DEBUG] GNN Risk: {gnn_risk}%")
+            except Exception as e:
+                print(f"[ERROR] GNN prediction failed: {e}")
+        
+        # Quick interaction check from RAG
         interaction = rag_system.search_interaction(drug1, drug2)
         print(f"[DEBUG] Interaction found: {interaction}")
+        
+        # Build detailed response
+        response_text = ""
+        status = "SAFE"
+        
+        # Add GNN prediction
+        if gnn_risk > 0:
+            response_text += f"🤖 **AI Prediction:** {gnn_risk:.1f}% interaction risk\n\n"
         
         # Determine safety based on interaction
         if interaction:
@@ -949,22 +992,38 @@ def emergency_check():
             # Check severity to determine safety
             if severity.lower() in ['major', 'severe', 'contraindicated']:
                 status = 'UNSAFE'
-                reason = f"⚠️ HIGH RISK: {severity.upper()} interaction - {interaction_desc}"
+                response_text += f"⚠️ **HIGH RISK:** {severity.upper()} interaction detected\n\n"
+                response_text += f"**What happens:** {interaction_desc}\n\n"
+                response_text += f"**Why this is dangerous:** This combination can cause serious health complications. "
+                response_text += f"The drugs interact in a way that may increase side effects or reduce effectiveness.\n\n"
+                response_text += f"**Recommendation:** DO NOT take these together without doctor supervision."
             elif severity.lower() in ['moderate', 'moderate risk']:
-                status = 'UNSAFE'
-                reason = f"⚠️ MODERATE RISK: {severity.upper()} interaction - {interaction_desc}"
+                status = 'CAUTION'
+                response_text += f"⚠️ **MODERATE RISK:** {severity.upper()} interaction detected\n\n"
+                response_text += f"**What happens:** {interaction_desc}\n\n"
+                response_text += f"**Why you should be careful:** This combination may cause unwanted effects or reduce drug effectiveness.\n\n"
+                response_text += f"**Recommendation:** Consult your doctor before taking these together."
             else:
                 status = 'SAFE'
-                reason = f"ℹ️ {interaction_desc}"
+                response_text += f"ℹ️ **Minor interaction:** {interaction_desc}\n\n"
+                response_text += f"**Recommendation:** Generally safe, but monitor for any unusual effects."
         else:
-            status = 'SAFE'
-            reason = f"✅ {drug1} and {drug2} appear safe to take together - No known interactions found."
+            if gnn_risk > 70:
+                status = 'CAUTION'
+                response_text += f"⚠️ **AI detected potential risk** even though no documented interaction was found.\n\n"
+                response_text += f"**Recommendation:** Consult a healthcare professional to be safe."
+            else:
+                status = 'SAFE'
+                response_text += f"✅ **{drug1} and {drug2} appear safe to take together**\n\n"
+                response_text += f"No known interactions found in our database.\n\n"
+                response_text += f"**Note:** Always inform your doctor about all medications you're taking."
         
-        print(f"[DEBUG] Status: {status}, Reason: {reason}")
+        print(f"[DEBUG] Status: {status}, GNN Risk: {gnn_risk}%")
         
         return jsonify({
             'status': status,
-            'reason': reason,
+            'response': response_text,
+            'gnn_risk': round(gnn_risk, 1),
             'drug1': drug1,
             'drug2': drug2,
             'interaction': interaction,
@@ -977,7 +1036,7 @@ def emergency_check():
         traceback.print_exc()
         return jsonify({
             'status': 'UNSAFE',
-            'reason': 'Unable to perform emergency check. Please consult a healthcare professional immediately.',
+            'response': 'Unable to perform emergency check. Please consult a healthcare professional immediately.',
             'error': str(e)
         }), 500
 
