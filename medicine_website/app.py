@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
+from flask_cors import CORS
 import sqlite3
 import pandas as pd
 import requests
@@ -26,7 +27,8 @@ except ImportError:
     print("[WARNING] google-auth-oauthlib not installed. Google Fit features disabled. Install with: pip install google-auth-oauthlib google-auth-httplib2 google-api-python-client")
 
 app = Flask(__name__)
-app.secret_key = 'the_final_and_most_secure_key' 
+app.secret_key = 'the_final_and_most_secure_key'
+CORS(app, supports_credentials=True, origins=['http://localhost:5173']) 
 
 # --- GNN Model Definition and Loading ---
 class GNNLinkPredictor(torch.nn.Module):
@@ -223,19 +225,20 @@ class SideEffectsDatabase:
         elif risk_factor == "age_80_plus":
             return patient_profile.get('age', 0) >= 80
         elif risk_factor == "kidney_disease":
-            conditions = patient_profile.get('conditions', '').lower()
+            conditions = (patient_profile.get('conditions') or '').lower()
             return 'kidney' in conditions or 'renal' in conditions
         elif risk_factor == "liver_disease":
-            conditions = patient_profile.get('conditions', '').lower()
+            conditions = (patient_profile.get('conditions') or '').lower()
             return 'liver' in conditions or 'hepatic' in conditions
         elif risk_factor == "heart_disease":
-            conditions = patient_profile.get('conditions', '').lower()
+            conditions = (patient_profile.get('conditions') or '').lower()
             return 'heart' in conditions or 'cardiac' in conditions
         elif risk_factor == "diabetes":
-            conditions = patient_profile.get('conditions', '').lower()
+            conditions = (patient_profile.get('conditions') or '').lower()
             return 'diabetes' in conditions
         elif risk_factor == "alcohol_use":
-            return patient_profile.get('alcohol_consumption', '').lower() in ['regular', 'occasional']
+            alcohol = (patient_profile.get('alcohol_consumption') or '').lower()
+            return alcohol in ['regular', 'occasional']
         return False
 
 side_effects_db = SideEffectsDatabase('side_effects_database.json')
@@ -351,7 +354,7 @@ def calculate_personalized_dosage(drug_name, dosage_amount, patient_profile):
         adjustment_reasons.append("Age 60+ (mild kidney function decline)")
     
     # Condition-based adjustments
-    conditions = patient_profile.get('conditions', '').lower()
+    conditions = (patient_profile.get('conditions') or '').lower()
     
     if 'kidney' in conditions or 'renal' in conditions:
         adjustment_factor *= 0.75
@@ -379,21 +382,27 @@ def calculate_personalized_dosage(drug_name, dosage_amount, patient_profile):
         except (ValueError, TypeError):
             pass
     
-    # Calculate suggested dose
-    suggested_dose = min(dosage_amount * adjustment_factor, max_daily)
-    
-    # Ensure minimum effective dose
-    min_effective_dose = max_daily * 0.5  # At least 50% of max dose
-    if suggested_dose < min_effective_dose:
-        suggested_dose = min_effective_dose
-        adjustment_reasons.append("Minimum effective dose maintained")
+    # Calculate suggested dose with safe handling of None values
+    if max_daily is not None and max_daily > 0:
+        suggested_dose = min(dosage_amount * adjustment_factor, max_daily)
+        
+        # Ensure minimum effective dose
+        min_effective_dose = max_daily * 0.5  # At least 50% of max dose
+        if suggested_dose < min_effective_dose:
+            suggested_dose = min_effective_dose
+            adjustment_reasons.append("Minimum effective dose maintained")
+    else:
+        # No max dose data available, just apply adjustment factor
+        suggested_dose = dosage_amount * adjustment_factor
+        if not adjustment_reasons:
+            adjustment_reasons.append("No maximum dose data available for this medication")
     
     return {
         "suggested_dose": round(suggested_dose, 1),
         "original_dose": dosage_amount,
         "adjustment_factor": round(adjustment_factor, 2),
         "adjustment_reasons": adjustment_reasons,
-        "max_safe_dose": max_daily
+        "max_safe_dose": max_daily if max_daily else "Unknown"
     }
 
 # --- Helper, Validation & AI Functions ---
@@ -415,33 +424,158 @@ def is_strong_password(password):
     if not re.search(r"[0-9]", password): return False, "Password must contain a number."
     if not re.search(r"[!@#$%^&*(),.?:{}|<>]", password): return False, "Password must contain a special character."
     return True, ""
+def generate_fallback_response(context):
+    """Generate a smart fallback response when LLM API is unavailable"""
+    
+    # Extract key information from context
+    has_interactions = "No specific pairwise interactions were found" not in context
+    gnn_risk_match = re.search(r'GNN Predicted Risk: ([\d.]+)%', context)
+    gnn_risk = float(gnn_risk_match.group(1)) if gnn_risk_match else 0
+    
+    patient_name_match = re.search(r'Name: ([^,]+)', context)
+    patient_name = patient_name_match.group(1) if patient_name_match else "there"
+    
+    drug_match = re.search(r'New Drug to Analyze: ([^\n]+)', context)
+    new_drug = drug_match.group(1).strip() if drug_match else "this medication"
+    
+    # Check for dosage warnings
+    has_dosage_warnings = "Dosage Warnings:" in context
+    
+    # Generate response based on analysis
+    response = f"Hi {patient_name}! 👋\n\n"
+    response += "I've completed a safety analysis for you using my medical database.\n\n"
+    
+    response += f"**🤖 AI Risk Analysis**\n"
+    response += f"My AI system predicts a {gnn_risk:.1f}% interaction risk"
+    if gnn_risk < 20:
+        response += " - that's quite low and reassuring!\n\n"
+    elif gnn_risk < 50:
+        response += " - moderate risk, worth being cautious.\n\n"
+    else:
+        response += " - this is concerning and requires attention.\n\n"
+    
+    response += "**💊 Drug Interaction Check**\n"
+    if has_interactions:
+        response += f"I found documented interactions for {new_drug} in my database. Please review the detailed interaction information above carefully.\n\n"
+    else:
+        response += f"Good news! I didn't find any documented interactions between {new_drug} and your current medications in my database.\n\n"
+    
+    response += "**📊 Dosage Safety**\n"
+    if has_dosage_warnings:
+        response += "⚠️ I have concerns about the dosage you entered. Please review the dosage warnings above.\n\n"
+    else:
+        response += "The dosage appears to be within normal ranges based on my database.\n\n"
+    
+    response += "**✅ My Recommendation**\n"
+    
+    # Decision logic
+    if gnn_risk > 70 or has_interactions or has_dosage_warnings:
+        response += f"Based on my analysis, I recommend NOT adding {new_drug} without consulting your doctor first. "
+        if has_interactions:
+            response += "There are documented interaction risks. "
+        if has_dosage_warnings:
+            response += "The dosage may not be safe. "
+        response += "Please discuss this with your healthcare provider.\n\n"
+        verdict = "DO NOT ADD"
+    elif gnn_risk > 40:
+        response += f"The risk level suggests caution. I recommend discussing {new_drug} with your doctor before adding it to your regimen.\n\n"
+        verdict = "DO NOT ADD"
+    else:
+        response += f"Based on my analysis, {new_drug} appears to be relatively safe to add. However, always monitor for any unusual symptoms and consult your doctor if you have concerns.\n\n"
+        verdict = "SAFE TO ADD"
+    
+    response += f"Verdict: {verdict}"
+    
+    return response
+
 def ask_local_llm(context):
-    prompt = f"""You are a personal AI health assistant. Your persona is that of a knowledgeable, caring, and direct friend. Your primary goal is to provide a DETAILED and CLEAR explanation for your safety assessment.
+    prompt = f"""You are Dr. MediBot, a friendly AI health assistant. Analyze this medication safety data and write a clear, simple response.
 
-    [CONTEXT]
-    {context}
+CRITICAL FORMATTING RULES:
+- Write in PLAIN TEXT only
+- DO NOT use ** for bold
+- DO NOT use ## for headers  
+- DO NOT use markdown
+- DO NOT use strikethrough
+- Just write normal sentences and paragraphs
+- Use simple dashes (-) for lists if needed
 
-    [INSTRUCTIONS]
-    1.  *Adopt a Persona:* Speak directly to the patient by their name. Your tone should be warm, personal, and easy to understand. Do NOT use technical jargon like "database" or "entities".
-    2.  *Always Include GNN Prediction:* You MUST include a GNN prediction percentage in your response. If not provided in context, estimate based on the information available (e.g., "My AI analysis shows a 15% risk of interactions" or "The predicted interaction risk is 85%").
-    3.  *Explain the 'Why' in Detail (MOST IMPORTANT TASK):*
-        * You MUST use the "Factual Interactions from Knowledge Base" from the context to explain why there might be a risk.
-        * For EACH interaction, you must explicitly state the *consequence* of that interaction. Don't just say "there is a risk"; explain what the risk IS (e.g., "this combination can increase your risk of bleeding," or "it might make your blood pressure drop too low"). This is the most helpful information you can provide.
-    4.  *Dosage Safety Analysis:* If dosage information is provided, explain it in a friendly way:
-        * If dosage is safe: "Great news! The dosage you've entered looks safe and within recommended limits."
-        * If dosage is too high: "I'm concerned about the dosage - it's higher than what's typically recommended for safety."
-        * Always explain the maximum safe doses in simple terms.
-    5.  *Synthesize Findings:*
-        * *Example of a good, detailed explanation:* "Hi Ganesh! I've done a thorough analysis for you. My AI system predicts a 92% risk of interactions here, which is quite high. My main concern is that my information shows a serious interaction between Warfarin and Ibuprofen, which can *significantly increase your risk of bleeding*. The dosage you've entered (500mg twice daily) is within safe limits, but the interaction risk is too high. Because of this clear risk, my advice is not to take this combination."
-        * *If no interactions are found:* Be reassuring. *Example:* "Hi Ganesh! Great news! I've checked my information thoroughly, and I don't see any major interactions listed for this medication with your current regimen. My AI analysis shows only a 5% risk of interactions, which is very low. The dosage you've entered also looks safe. This medication appears to be a good fit for you!"
-    6.  *Final Verdict:* End your response with a clear, one-line verdict on a new line: "Verdict: SAFE TO ADD" or "Verdict: DO NOT ADD".
-    """
+ANALYSIS DATA:
+{context}
+
+Write your response as if you're talking to a friend. Use simple, clear language.
+
+[YOUR ROLE]
+You are a caring health assistant who:
+- Greets the patient warmly by name
+- Explains findings in simple, everyday language  
+- Focuses on what matters most to patient safety
+- Gives clear, actionable recommendations
+- Is reassuring when safe, cautious when risky
+
+[WHAT TO INCLUDE IN YOUR RESPONSE]
+
+1. WARM GREETING
+   - Start with "Hi [Name]!"
+   - Brief friendly opening
+
+2. AI RISK SCORE (if available in data)
+   - State the GNN prediction percentage
+   - Explain if it's low, moderate, or high risk
+
+3. DRUG INTERACTIONS
+   - Look for "Known Pairwise Interactions from Database"
+   - If found: Explain WHAT happens and WHY
+   - If not found: Reassure them
+
+4. DOSAGE SAFETY
+   - Check "Dosage Information" in the data
+   - Compare entered dose vs safe limits
+   - Mention if dose is safe or too high
+
+5. SIDE EFFECTS (if in data)
+   - List 2-3 common side effects in simple terms
+   - Mention any personalized warnings
+
+6. CLEAR RECOMMENDATION
+   - Is it safe to add or not?
+   - Give specific reasons
+   - What should they do?
+
+7. FINAL VERDICT (REQUIRED!)
+   End with: "Verdict: SAFE TO ADD" or "Verdict: DO NOT ADD"
+
+[EXAMPLE - WRITE LIKE THIS]
+
+Hi Sarah!
+
+I've analyzed adding Aspirin to your medications. Here's what I found:
+
+My AI system shows a 12% interaction risk - that's quite low.
+
+I checked Aspirin against your current medications (Metformin and Lisinopril) and found no serious interactions. These can be taken together safely.
+
+Your dosage of 100mg once daily is well within safe limits. The maximum safe daily dose is 4000mg.
+
+Aspirin can cause mild stomach upset. Take it with food if this happens.
+
+This looks safe to add! The dosage is appropriate and there are no dangerous interactions.
+
+Verdict: SAFE TO ADD
+
+[REMEMBER]
+- Use simple, clear language
+- No fancy formatting or markdown
+- Be specific about risks and benefits
+- Give actionable advice
+- Always end with clear verdict
+"""
     
     # Try cloud API first (OpenRouter.ai), fallback to localhost
     api_key = os.environ.get('OPENROUTER_API_KEY', '')
     
     if api_key:
-        # Use OpenRouter.ai cloud API
+        # Use OpenRouter.ai cloud API with multiple model fallbacks
         print("[INFO] Using OpenRouter.ai cloud API")
         api_url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
@@ -450,12 +584,34 @@ def ask_local_llm(context):
             "HTTP-Referer": "http://localhost:5000",
             "X-Title": "Medicine Assistant"
         }
-        payload = {
-            "model": "meta-llama/llama-3.2-3b-instruct:free",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.4,
-            "max_tokens": 1500
-        }
+        
+        # Try multiple models in order of preference
+        models_to_try = [
+            "nousresearch/hermes-3-llama-3.1-405b:free",  # Most powerful
+            "meta-llama/llama-3.2-3b-instruct:free",      # Fast and reliable
+            "mistralai/mistral-7b-instruct:free"          # Backup
+        ]
+        
+        for model in models_to_try:
+            try:
+                print(f"[INFO] Trying model: {model}")
+                payload = {
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.4,
+                    "max_tokens": 2000
+                }
+                response = requests.post(api_url, headers=headers, json=payload, timeout=90)
+                response.raise_for_status()
+                print(f"[SUCCESS] Model {model} responded successfully")
+                return response.json()['choices'][0]['message']['content']
+            except requests.exceptions.RequestException as e:
+                print(f"[WARNING] Model {model} failed: {e}")
+                continue  # Try next model
+        
+        # If all models failed, use fallback
+        print("[ERROR] All OpenRouter models failed, using fallback")
+        return generate_fallback_response(context)
     else:
         # Fallback to local API (original behavior)
         print("[INFO] Using local LLM API")
@@ -466,109 +622,52 @@ def ask_local_llm(context):
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.4
         }
-    
-    try:
-        response = requests.post(api_url, headers=headers, json=payload, timeout=90)
-        response.raise_for_status()
-        return response.json()['choices'][0]['message']['content']
-    except requests.exceptions.RequestException as e:
-        print(f"[ERROR] LLM API error: {e}")
-        return "I am unable to connect to the AI assistant.\nVerdict: DO NOT ADD"
+        
+        try:
+            response = requests.post(api_url, headers=headers, json=payload, timeout=90)
+            response.raise_for_status()
+            return response.json()['choices'][0]['message']['content']
+        except requests.exceptions.RequestException as e:
+            print(f"[ERROR] Local LLM API error: {e}")
+            return generate_fallback_response(context)
 
 # --- USER AUTHENTICATION & PROFILE (UPGRADED) ---
-@app.route('/')
-def home(): return redirect(url_for('login'))
+# ===== OLD HTML ROUTES - DISABLED FOR REACT FRONTEND =====
+# These routes are commented out because we're using React for the frontend
+# The API routes below handle all frontend requests
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if 'patient_id' in session: return redirect(url_for('dashboard'))
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        conn = get_db_connection()
-        patient = conn.execute('SELECT * FROM patients WHERE email = ?', (email,)).fetchone()
-        conn.close()
-        if patient and check_password_hash(patient['password_hash'], password):
-            session['patient_id'] = patient['id']
-            return redirect(url_for('dashboard'))
-        else:
-            flash("Invalid email or password. Please try again.", "warning")
-    return render_template('index.html', page='login')
+# @app.route('/')
+# def home(): return redirect(url_for('login'))
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        password = request.form['password']
-        
-        if not is_valid_email(email):
-            flash("Please enter a valid email address.", "warning")
-            return redirect(url_for('register'))
-            
-        is_strong, message = is_strong_password(password)
-        if not is_strong:
-            flash(message, "warning")
-            return redirect(url_for('register'))
-        
-        conn = get_db_connection()
-        if conn.execute('SELECT id FROM patients WHERE email = ?', (email,)).fetchone():
-            flash("An account with this email already exists. Please login.", "warning")
-            conn.close()
-            return redirect(url_for('login'))
-        
-        password_hash = generate_password_hash(password)
-        # Correctly insert all required fields
-        conn.execute('INSERT INTO patients (name, email, password_hash) VALUES (?, ?, ?)', (name, email, password_hash))
-        conn.commit()
-        new_patient = conn.execute('SELECT * FROM patients WHERE email = ?', (email,)).fetchone()
-        conn.close()
-        
-        session['patient_id'] = new_patient['id']
-        flash("Registration successful! Please complete your comprehensive health profile.", "info")
-        return redirect(url_for('profile'))
-    return render_template('index.html', page='register')
+# @app.route('/login', methods=['GET', 'POST'])
+# def login():
+#     ... (disabled)
 
-# --- MAIN DASHBOARD & LOGIC ---
-@app.route('/dashboard')
-def dashboard():
-    if 'patient_id' not in session: return redirect(url_for('login'))
-    conn = get_db_connection()
-    patient_data = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
-    patient = dict(patient_data)
-    patient['age'] = calculate_age(patient.get('dob'))
-    medications = conn.execute('SELECT * FROM medications WHERE patient_id = ? ORDER BY drug_name', (session['patient_id'],)).fetchall()
-    conn.close()
-    return render_template('index.html', page='dashboard', patient=patient, medications=medications)
+# @app.route('/register', methods=['GET', 'POST'])
+# def register():
+#     ... (disabled)
 
-@app.route('/profile', methods=['GET', 'POST'])
-def profile():
-    if 'patient_id' not in session: return redirect(url_for('login'))
-    conn = get_db_connection()
-    if request.method == 'POST':
-        form_data = (
-            request.form.get('dob', ''), request.form.get('gender', ''), request.form.get('weight_kg', None), 
-            request.form.get('height_cm', None), request.form.get('emergency_contact', ''), 
-            request.form.get('conditions', ''), request.form.get('drug_allergies', ''), 
-            request.form.get('food_allergies', ''), request.form.get('other_allergies', ''), 
-            request.form.get('is_smoker', ''), request.form.get('alcohol_consumption', ''), 
-            session['patient_id']
-        )
-        conn.execute('UPDATE patients SET dob=?, gender=?, weight_kg=?, height_cm=?, emergency_contact=?, conditions=?, drug_allergies=?, food_allergies=?, other_allergies=?, is_smoker=?, alcohol_consumption=? WHERE id=?', form_data)
-        conn.commit()
-        conn.close()
-        flash("Profile updated successfully!", "success")
-        return redirect(url_for('dashboard'))
-    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
-    conn.close()
-    return render_template('index.html', page='profile', patient=patient)
+# @app.route('/dashboard')
+# def dashboard():
+#     ... (disabled)
+
+# @app.route('/profile', methods=['GET', 'POST'])
+# def profile():
+#     ... (disabled)
 
 # ... (The rest of your app.py file, including check_before_adding, add_medication, etc., remains the same)
 def get_holistic_context(new_drug, patient, existing_meds, dosage_amount=None, dosage_unit=None, frequency=None):
     patient_age = calculate_age(patient.get('dob'))
     patient['age'] = patient_age
     
-    context_str = f"Patient Profile: Name: {patient.get('name')}, Age: {patient_age}, Conditions: {patient.get('conditions')}, Allergies: {patient.get('drug_allergies')}, Smoker: {patient.get('is_smoker')}, Alcohol: {patient.get('alcohol_consumption')}.\n"
+    # Safely get patient data with defaults
+    name = patient.get('name') or 'Patient'
+    conditions = patient.get('conditions') or 'None reported'
+    allergies = patient.get('drug_allergies') or 'None reported'
+    smoker = patient.get('is_smoker') or 'Not specified'
+    alcohol = patient.get('alcohol_consumption') or 'Not specified'
+    
+    context_str = f"Patient Profile: Name: {name}, Age: {patient_age}, Conditions: {conditions}, Allergies: {allergies}, Smoker: {smoker}, Alcohol: {alcohol}.\n"
     context_str += f"Current Medications: {', '.join([med['drug_name'] for med in existing_meds]) if existing_meds else 'None'}.\n"
     context_str += f"New Drug to Analyze: {new_drug}.\n\n"
     
@@ -746,6 +845,11 @@ def check_before_adding():
             
             holistic_context += dosage_info
         
+        # Get GNN risk score
+        gnn_risk = 0.0
+        if gnn_model and drug_map and existing_meds:
+            gnn_risk = get_gnn_prediction(new_drug, existing_meds)
+        
         # Get AI summary with error handling
         try:
             ai_summary = ask_local_llm(holistic_context)
@@ -764,9 +868,11 @@ def check_before_adding():
         
         main_summary = "\n".join(summary_lines[:-1]) if len(summary_lines) > 1 else ai_summary
         
-        # Add dosage warnings to the response
+        # Format response for React frontend
         response_data = {
-            'summary': main_summary, 
+            'gnn_risk': round(gnn_risk, 1),
+            'verdict': verdict.replace('Verdict: ', ''),
+            'ai_response': main_summary,
             'can_add': can_add,
             'dosage_validation': dosage_validation
         }
@@ -775,23 +881,38 @@ def check_before_adding():
         
     except Exception as e:
         print(f"Error in check_before_adding: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
-            'error': 'An error occurred while checking the medication',
-            'summary': 'I apologize, but there was an error processing your request. Please try again.',
+            'gnn_risk': 0,
+            'verdict': 'ERROR',
+            'ai_response': 'I apologize, but there was an error processing your request. Please try again.',
             'can_add': False,
             'dosage_validation': {'is_safe': False, 'warnings': ['Error occurred during validation']}
         }), 500
 
 @app.route('/add_medication', methods=['POST'])
 def add_medication():
-    if 'patient_id' not in session: return redirect(url_for('login'))
-    form_data = (session['patient_id'], request.form['drug_name'], request.form.get('dosage_amount'), request.form.get('dosage_unit'), request.form.get('frequency'), request.form.get('start_date'), request.form.get('end_date'))
+    if 'patient_id' not in session:
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+    
+    data = request.get_json() if request.is_json else request.form
+    form_data = (
+        session['patient_id'],
+        data.get('drug_name'),
+        data.get('dosage_amount'),
+        data.get('dosage_unit'),
+        data.get('frequency'),
+        data.get('start_date'),
+        data.get('end_date')
+    )
+    
     conn = get_db_connection()
     conn.execute('INSERT INTO medications (patient_id, drug_name, dosage_amount, dosage_unit, frequency, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?)', form_data)
     conn.commit()
     conn.close()
-    flash(f"'{request.form['drug_name']}' has been added to your log.", "success")
-    return redirect(url_for('dashboard'))
+    
+    return jsonify({'success': True, 'message': f"'{data.get('drug_name')}' has been added to your log."})
 
 @app.route('/ask_assistant', methods=['POST'])
 def ask_assistant():
@@ -842,8 +963,7 @@ def ask_assistant():
 @app.route('/logout')
 def logout():
     session.pop('patient_id', None)
-    flash("You have been logged out.", "info")
-    return redirect(url_for('login'))
+    return jsonify({'success': True, 'message': 'You have been logged out.'})
 
 # --- Live Health Monitoring Endpoints ---
 @app.route('/api/health-data')
@@ -1291,6 +1411,143 @@ def get_dummy_health_data():
 def google_fit_connect():
     """Initiate Google Fit connection"""
     return redirect(url_for('authorize_fit'))
+
+# ===== API ROUTES FOR REACT FRONTEND =====
+
+@app.route('/api/check-auth', methods=['GET'])
+def check_auth():
+    if 'patient_id' in session:
+        conn = get_db_connection()
+        patient = conn.execute('SELECT id, name, email FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+        conn.close()
+        if patient:
+            return jsonify({
+                'authenticated': True,
+                'user': {'id': patient['id'], 'name': patient['name'], 'email': patient['email']}
+            })
+    return jsonify({'authenticated': False})
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    
+    conn = get_db_connection()
+    patient = conn.execute('SELECT * FROM patients WHERE email = ?', (email,)).fetchone()
+    conn.close()
+    
+    if patient and check_password_hash(patient['password_hash'], password):
+        session['patient_id'] = patient['id']
+        return jsonify({
+            'success': True,
+            'user': {'id': patient['id'], 'name': patient['name'], 'email': patient['email']}
+        })
+    else:
+        return jsonify({'success': False, 'error': 'Invalid email or password'}), 401
+
+@app.route('/api/register', methods=['POST'])
+def api_register():
+    data = request.get_json()
+    name = data.get('name')
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not is_valid_email(email):
+        return jsonify({'success': False, 'error': 'Invalid email address'}), 400
+    
+    is_strong, message = is_strong_password(password)
+    if not is_strong:
+        return jsonify({'success': False, 'error': message}), 400
+    
+    conn = get_db_connection()
+    if conn.execute('SELECT id FROM patients WHERE email = ?', (email,)).fetchone():
+        conn.close()
+        return jsonify({'success': False, 'error': 'Email already exists'}), 400
+    
+    password_hash = generate_password_hash(password)
+    conn.execute('INSERT INTO patients (name, email, password_hash) VALUES (?, ?, ?)', (name, email, password_hash))
+    conn.commit()
+    new_patient = conn.execute('SELECT * FROM patients WHERE email = ?', (email,)).fetchone()
+    conn.close()
+    
+    session['patient_id'] = new_patient['id']
+    return jsonify({
+        'success': True,
+        'user': {'id': new_patient['id'], 'name': new_patient['name'], 'email': new_patient['email']}
+    })
+
+@app.route('/api/logout', methods=['GET'])
+def api_logout():
+    session.pop('patient_id', None)
+    return jsonify({'success': True})
+
+@app.route('/api/health-data', methods=['GET'])
+def api_health_data():
+    if 'patient_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Mock health data - replace with real Google Fit data
+    current_data = {
+        'heart_rate': random.randint(60, 100),
+        'steps': random.randint(3000, 15000),
+        'calories': random.randint(1500, 3000)
+    }
+    
+    # Generate 7 days of trend data
+    trends = []
+    for i in range(7):
+        day = datetime.now() - timedelta(days=6-i)
+        trends.append({
+            'date': day.isoformat(),
+            'heart_rate': random.randint(60, 100),
+            'steps': random.randint(3000, 15000),
+            'calories': random.randint(1500, 3000)
+        })
+    
+    return jsonify({'current': current_data, 'trends': trends})
+
+@app.route('/api/medications', methods=['GET'])
+def api_medications():
+    if 'patient_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = get_db_connection()
+    medications = conn.execute('SELECT * FROM medications WHERE patient_id = ?', (session['patient_id'],)).fetchall()
+    conn.close()
+    
+    meds_list = [dict(med) for med in medications]
+    return jsonify({'medications': meds_list})
+
+@app.route('/api/profile', methods=['GET', 'POST'])
+def api_profile():
+    if 'patient_id' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    conn = get_db_connection()
+    
+    if request.method == 'POST':
+        data = request.get_json()
+        conn.execute('''UPDATE patients SET 
+            name=?, dob=?, gender=?, weight_kg=?, height_cm=?, 
+            emergency_contact=?, conditions=?, drug_allergies=?, 
+            food_allergies=?, other_allergies=?, is_smoker=?, alcohol_consumption=? 
+            WHERE id=?''', (
+            data.get('name'), data.get('dob'), data.get('gender'),
+            data.get('weight_kg'), data.get('height_cm'),
+            data.get('emergency_contact'), data.get('conditions'),
+            data.get('drug_allergies'), data.get('food_allergies'),
+            data.get('other_allergies'), data.get('is_smoker'),
+            data.get('alcohol_consumption'), session['patient_id']
+        ))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'message': 'Profile updated successfully'})
+    
+    # GET request
+    patient = conn.execute('SELECT * FROM patients WHERE id = ?', (session['patient_id'],)).fetchone()
+    conn.close()
+    return jsonify({'profile': dict(patient)})
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)
