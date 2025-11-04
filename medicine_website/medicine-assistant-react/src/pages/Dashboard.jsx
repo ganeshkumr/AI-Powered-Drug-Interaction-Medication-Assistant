@@ -25,28 +25,46 @@ const Dashboard = () => {
   }
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="space-y-8"
-    >
-      <motion.div variants={itemVariants}>
-        <HealthMonitoring />
+    <div>
+      {/* Welcome Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8"
+      >
+        <h1 className="text-3xl font-heading font-bold text-neutral-text mb-2">
+          Welcome to Your Health Dashboard
+        </h1>
+        <p className="text-gray-600">
+          Monitor your health, check medication safety, and manage your prescriptions all in one place.
+        </p>
       </motion.div>
 
-      <motion.div variants={itemVariants}>
-        <EmergencyCheck />
-      </motion.div>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
+        <motion.div variants={itemVariants}>
+          <HealthMonitoring />
+        </motion.div>
 
-      <motion.div variants={itemVariants}>
-        <MedicationForm />
-      </motion.div>
+        <motion.div variants={itemVariants}>
+          <EmergencyCheck />
+        </motion.div>
 
-      <motion.div variants={itemVariants}>
-        <MedicationList />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <motion.div variants={itemVariants}>
+            <MedicationForm />
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <MedicationList />
+          </motion.div>
+        </div>
       </motion.div>
-    </motion.div>
+    </div>
   )
 }
 

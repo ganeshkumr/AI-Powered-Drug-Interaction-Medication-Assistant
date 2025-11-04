@@ -54,17 +54,17 @@ const EmergencyCheck = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-slate-800 dark:to-slate-700 p-6 rounded-xl shadow-lg border border-red-200 dark:border-slate-600"
+      className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-slate-800 dark:to-slate-700 p-6 rounded-card shadow-soft-lg border border-red-200 dark:border-slate-600"
     >
       <div className="flex items-center mb-4">
-        <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center mr-3">
+        <div className="w-12 h-12 bg-status-danger rounded-full flex items-center justify-center mr-3 shadow-soft">
           <AlertTriangle className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h3 className="text-2xl font-bold text-red-800 dark:text-red-400">
+          <h3 className="text-2xl font-heading font-bold text-status-danger">
             🚨 Emergency Drug Check
           </h3>
-          <p className="text-sm text-red-700 dark:text-red-300">
+          <p className="text-sm text-gray-600">
             Quick interaction check - no profile needed
           </p>
         </div>

@@ -32,7 +32,7 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-accent-50 dark:from-slate-900 dark:to-slate-800 px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -99,7 +99,7 @@ const Login = () => {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-soft hover:shadow-soft-lg transition-all"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </motion.button>
@@ -109,7 +109,7 @@ const Login = () => {
             New patient?{' '}
             <Link
               to="/register"
-              className="font-medium text-blue-600 hover:text-blue-700"
+              className="font-medium text-primary hover:text-primary-600"
             >
               Create a profile
             </Link>

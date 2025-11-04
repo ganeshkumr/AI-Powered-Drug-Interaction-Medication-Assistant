@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Loader, CheckCircle, AlertCircle } from 'lucide-react'
 import { medicationAPI } from '../../services/api'
+import Card from '../common/Card'
+import Button from '../common/Button'
 
 const MedicationForm = () => {
   const [drugName, setDrugName] = useState('')
@@ -163,7 +165,7 @@ const MedicationForm = () => {
           whileTap={{ scale: 0.98 }}
           onClick={handleCheck}
           disabled={loading}
-          className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 flex items-center justify-center space-x-2"
+          className="w-full py-3 bg-primary hover:bg-primary-600 text-white rounded-lg font-medium disabled:opacity-50 flex items-center justify-center space-x-2 shadow-soft hover:shadow-soft-lg transition-all"
         >
           {loading ? (
             <>
@@ -188,28 +190,47 @@ const MedicationForm = () => {
             >
               {/* GNN Risk Score */}
               {checkResult.gnn_risk !== undefined && (
-                <div className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    🤖 AI Risk Prediction:
-                  </p>
-                  <p className={`text-2xl font-bold ${
-                    checkResult.gnn_risk > 70 ? 'text-red-600' :
-                    checkResult.gnn_risk > 40 ? 'text-yellow-600' :
-                    'text-green-600'
-                  }`}>
-                    {checkResult.gnn_risk}%
-                  </p>
-                  <p className="text-xs text-slate-600 dark:text-slate-400">
-                    Interaction Risk Score
-                  </p>
+                <div className="p-4 bg-gradient-to-br from-primary-50 to-accent-50 rounded-card border border-primary-100 shadow-soft">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-primary mb-1">
+                        🤖 AI Risk Prediction
+                      </p>
+                      <p className={`text-3xl font-bold font-heading ${
+                        checkResult.gnn_risk > 70 ? 'text-status-danger' :
+                        checkResult.gnn_risk > 40 ? 'text-status-warning' :
+                        'text-status-safe'
+                      }`}>
+                        {checkResult.gnn_risk}%
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        Interaction Risk Score
+                      </p>
+                    </div>
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                      checkResult.gnn_risk > 70 ? 'bg-red-100' :
+                      checkResult.gnn_risk > 40 ? 'bg-yellow-100' :
+                      'bg-green-100'
+                    }`}>
+                      <span className={`text-2xl ${
+                        checkResult.gnn_risk > 70 ? 'text-status-danger' :
+                        checkResult.gnn_risk > 40 ? 'text-status-warning' :
+                        'text-status-safe'
+                      }`}>
+                        {checkResult.gnn_risk > 70 ? '⚠️' :
+                         checkResult.gnn_risk > 40 ? '⚡' :
+                         '✓'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {/* AI Analysis */}
-              <div className={`p-4 rounded-lg border-l-4 ${
+              <div className={`p-4 rounded-card border-l-4 shadow-soft ${
                 checkResult.verdict?.includes('SAFE')
-                  ? 'bg-green-50 dark:bg-green-900/20 border-green-500'
-                  : 'bg-red-50 dark:bg-red-900/20 border-red-500'
+                  ? 'bg-green-50 dark:bg-green-900/20 border-status-safe'
+                  : 'bg-red-50 dark:bg-red-900/20 border-status-danger'
               }`}>
                 <div className="flex items-start space-x-2 mb-3">
                   {checkResult.verdict?.includes('SAFE') ? (
@@ -231,7 +252,7 @@ const MedicationForm = () => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleAdd}
-                    className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center space-x-2"
+                    className="w-full py-3 bg-status-safe hover:bg-green-700 text-white rounded-lg font-medium flex items-center justify-center space-x-2 shadow-soft hover:shadow-soft-lg transition-all"
                   >
                     <Plus className="w-5 h-5" />
                     <span>Confirm & Add to Profile</span>

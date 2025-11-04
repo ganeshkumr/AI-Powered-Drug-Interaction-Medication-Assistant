@@ -143,19 +143,19 @@ const HealthMonitoring = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 p-6 rounded-xl shadow-lg border border-blue-200 dark:border-slate-600"
+      className="bg-gradient-to-r from-primary-50 to-accent-50 dark:from-slate-800 dark:to-slate-700 p-6 rounded-card shadow-soft-lg border border-primary-100 dark:border-slate-600"
     >
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+        <h2 className="text-2xl font-heading font-bold text-neutral-text">
           📱 Live Health Monitoring
         </h2>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 px-3 py-1.5 bg-green-50 rounded-full">
           <motion.div
             animate={{ scale: [1, 1.2, 1] }}
             transition={{ repeat: Infinity, duration: 2 }}
-            className="w-2 h-2 bg-green-500 rounded-full"
+            className="w-2 h-2 bg-status-safe rounded-full"
           />
-          <span className="text-sm text-slate-600 dark:text-slate-300">Connected</span>
+          <span className="text-sm font-medium text-status-safe">Connected</span>
         </div>
       </div>
 
