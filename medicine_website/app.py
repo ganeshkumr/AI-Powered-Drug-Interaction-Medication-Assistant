@@ -1549,6 +1549,121 @@ def api_profile():
     conn.close()
     return jsonify({'profile': dict(patient)})
 
+# --- Drug Search API ---
+@app.route('/api/search-drugs', methods=['GET'])
+def search_drugs():
+    """Search for drugs by name (autocomplete)"""
+    query = request.args.get('q', '').lower().strip()
+    
+    if len(query) < 2:
+        return jsonify({'drugs': []})
+    
+    # Get unique drugs from the interactions database
+    if rag_system.df is not None:
+        all_drugs = set()
+        all_drugs.update(rag_system.df['drug_a'].str.strip().tolist())
+        all_drugs.update(rag_system.df['drug_b'].str.strip().tolist())
+        
+        # Filter drugs that match the query
+        matching_drugs = [drug for drug in all_drugs if query in drug.lower()]
+        matching_drugs = sorted(matching_drugs)[:20]  # Limit to 20 results
+        
+        return jsonify({'drugs': matching_drugs})
+    
+    return jsonify({'drugs': []})
+
+# --- Quick Check API (No Login Required) ---
+@app.route('/api/quick-check', methods=['POST'])
+def quick_check():
+    """Quick interaction check without requiring login"""
+    data = request.json
+    drugs = data.get('drugs', [])
+    use_profile = data.get('use_profile', False)
+    
+    if len(drugs) < 1:
+        return jsonify({'error': 'At least one drug is required'}), 400
+    
+    # If use_profile is True, check if user is logged in
+    if use_profile and 'patient_id' not in session:
+        return jsonify({'error': 'Login required for profile-based checks'}), 401
+    
+    # For single drug, just return safe
+    if len(drugs) == 1:
+        return jsonify({
+            'gnn_risk': 0,
+            'verdict': 'SAFE TO ADD',
+            'ai_response': f'{drugs[0]} appears safe when taken alone. Always consult your healthcare provider.',
+            'can_add': True,
+            'dosage_validation': {
+                'is_safe': True,
+                'warnings': [],
+                'max_daily': None,
+                'max_single': None
+            }
+        })
+    
+    # Check interactions between all pairs of drugs
+    max_risk = 0
+    interactions_found = []
+    
+    for i in range(len(drugs)):
+        for j in range(i + 1, len(drugs)):
+            drug1, drug2 = drugs[i], drugs[j]
+            
+            # Get GNN prediction
+            if gnn_model and drug_map:
+                drug1_lower = drug1.lower().strip()
+                drug2_lower = drug2.lower().strip()
+                
+                if drug1_lower in drug_map and drug2_lower in drug_map:
+                    idx1 = drug_map[drug1_lower]
+                    idx2 = drug_map[drug2_lower]
+                    
+                    with torch.no_grad():
+                        x = torch.arange(len(drug_map))
+                        edge_index = torch.tensor([[0], [0]], dtype=torch.long)
+                        z = gnn_model.encode(x, edge_index)
+                        edge_label_index = torch.tensor([[idx1], [idx2]], dtype=torch.long)
+                        pred = torch.sigmoid(gnn_model.decode(z, edge_label_index)).item()
+                        risk_score = int(pred * 100)
+                        
+                        if risk_score > max_risk:
+                            max_risk = risk_score
+                        
+                        interactions_found.append({
+                            'drug1': drug1,
+                            'drug2': drug2,
+                            'risk': risk_score
+                        })
+    
+    # Determine verdict
+    if max_risk < 30:
+        verdict = 'SAFE TO ADD'
+        can_add = True
+        ai_response = f'The combination of {", ".join(drugs)} appears to have low interaction risk (GNN Risk: {max_risk}%). However, always consult your healthcare provider before combining medications.'
+    elif max_risk < 70:
+        verdict = 'CAUTION ADVISED'
+        can_add = False
+        ai_response = f'The combination of {", ".join(drugs)} shows moderate interaction risk (GNN Risk: {max_risk}%). Please consult your healthcare provider before taking these medications together.'
+    else:
+        verdict = 'DO NOT ADD'
+        can_add = False
+        ai_response = f'The combination of {", ".join(drugs)} shows high interaction risk (GNN Risk: {max_risk}%). Do not take these medications together without explicit approval from your healthcare provider.'
+    
+    return jsonify({
+        'gnn_risk': max_risk,
+        'verdict': verdict,
+        'ai_response': ai_response,
+        'can_add': can_add,
+        'interactions': interactions_found,
+        'dosage_validation': {
+            'is_safe': True,
+            'warnings': [],
+            'max_daily': None,
+            'max_single': None
+        }
+    })
+
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)
 

@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Loader, CheckCircle, AlertCircle } from 'lucide-react'
+import { Plus, Loader, CheckCircle, AlertCircle, Calendar } from 'lucide-react'
 import { medicationAPI } from '../../services/api'
 import Card from '../common/Card'
 import Button from '../common/Button'
+import DrugSearch from '../medication/DrugSearch'
 
 const MedicationForm = () => {
   const [drugName, setDrugName] = useState('')
@@ -89,74 +90,108 @@ const MedicationForm = () => {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Drug Name</label>
-          <input
-            type="text"
-            value={drugName}
-            onChange={(e) => setDrugName(e.target.value)}
-            placeholder="e.g., Lisinopril"
-            className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-700"
+          <label className="block text-sm font-medium text-neutral-text mb-2">
+            Drug Name *
+          </label>
+          <DrugSearch
+            onSelect={(drug) => setDrugName(drug)}
+            placeholder="Search for a medication (e.g., Lisinopril)..."
           />
+          {drugName && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-2 text-sm text-primary font-medium"
+            >
+              Selected: {drugName}
+            </motion.div>
+          )}
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Dosage Amount</label>
+            <label className="block text-sm font-medium text-neutral-text mb-2">
+              Dosage Amount *
+            </label>
             <input
               type="number"
               value={dosage}
               onChange={(e) => setDosage(e.target.value)}
               placeholder="e.g., 10"
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-700"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Unit</label>
+            <label className="block text-sm font-medium text-neutral-text mb-2">
+              Unit *
+            </label>
             <select
               value={dosageUnit}
               onChange={(e) => setDosageUnit(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-700"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
             >
-              <option value="mg">mg</option>
-              <option value="g">g</option>
-              <option value="ml">ml</option>
-              <option value="mcg">mcg</option>
-              <option value="IU">IU</option>
+              <option value="mg">mg (milligrams)</option>
+              <option value="g">g (grams)</option>
+              <option value="ml">ml (milliliters)</option>
+              <option value="mcg">mcg (micrograms)</option>
+              <option value="IU">IU (International Units)</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Frequency</label>
-            <input
-              type="text"
+            <label className="block text-sm font-medium text-neutral-text mb-2">
+              Frequency *
+            </label>
+            <select
               value={frequency}
               onChange={(e) => setFrequency(e.target.value)}
-              placeholder="e.g., Once daily"
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-700"
-            />
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+            >
+              <option value="">Select frequency</option>
+              <option value="Once daily">Once daily</option>
+              <option value="Twice daily">Twice daily</option>
+              <option value="Three times daily">Three times daily</option>
+              <option value="Four times daily">Four times daily</option>
+              <option value="Every 4 hours">Every 4 hours</option>
+              <option value="Every 6 hours">Every 6 hours</option>
+              <option value="Every 8 hours">Every 8 hours</option>
+              <option value="Every 12 hours">Every 12 hours</option>
+              <option value="As needed">As needed</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+            </select>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Start Date</label>
+            <label className="block text-sm font-medium text-neutral-text mb-2 flex items-center space-x-2">
+              <Calendar className="w-4 h-4" />
+              <span>Start Date</span>
+            </label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-700"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">End Date (Optional)</label>
+            <label className="block text-sm font-medium text-neutral-text mb-2 flex items-center space-x-2">
+              <Calendar className="w-4 h-4" />
+              <span>End Date (Optional)</span>
+            </label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-700"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Leave empty for ongoing medication
+            </p>
           </div>
         </div>
 

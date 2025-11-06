@@ -4,6 +4,7 @@ import { Activity, Shield, Zap, CheckCircle, Users, Clock, Pill } from 'lucide-r
 import { useState } from 'react'
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
+import QuickCheckModal from '../components/landing/QuickCheckModal'
 
 const Landing = () => {
   const navigate = useNavigate()
@@ -271,48 +272,7 @@ const Landing = () => {
         title="Quick Interaction Check"
         size="lg"
       >
-        <div className="space-y-6">
-          <div className="bg-primary-50 border border-primary-100 rounded-lg p-4">
-            <p className="text-sm text-primary-700">
-              <strong>Quick Check:</strong> Get instant results without signing in.
-              For more accurate, personalized checks based on your health profile,{' '}
-              <button
-                onClick={() => navigate('/register')}
-                className="underline font-medium hover:text-primary-800"
-              >
-                create an account
-              </button>
-              .
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-neutral-text mb-2">
-              Enter medications to check
-            </label>
-            <p className="text-sm text-gray-500 mb-4">
-              Add the medications you want to check for interactions. You can add multiple drugs.
-            </p>
-            
-            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-              <Activity className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600 mb-4">
-                Drug search component will be implemented in the next task
-              </p>
-              <Button
-                variant="primary"
-                onClick={() => navigate('/dashboard')}
-              >
-                Go to Dashboard for Full Features
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 text-sm text-gray-500">
-            <Shield className="w-4 h-4" />
-            <span>Your data is not stored and remains private</span>
-          </div>
-        </div>
+        <QuickCheckModal onClose={() => setShowQuickCheck(false)} />
       </Modal>
     </div>
   )

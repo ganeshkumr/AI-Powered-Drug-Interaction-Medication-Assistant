@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { User, Save, Loader } from 'lucide-react'
+import { User, Save, Loader, ChevronDown, ChevronUp, X, Plus, Activity, CheckCircle } from 'lucide-react'
 import api from '../services/api'
+import Button from '../components/common/Button'
 
 const Profile = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [googleFitConnected, setGoogleFitConnected] = useState(false)
+  const [conditionInput, setConditionInput] = useState('')
+  const [conditionsList, setConditionsList] = useState([])
   const [profile, setProfile] = useState({
     name: '',
     email: '',
@@ -30,7 +35,13 @@ const Profile = () => {
   const fetchProfile = async () => {
     try {
       const response = await api.get('/api/profile')
-      setProfile(response.data.profile)
+      const profileData = response.data.profile
+      setProfile(profileData)
+      
+      // Parse conditions into chips
+      if (profileData.conditions) {
+        setConditionsList(profileData.conditions.split(',').map(c => c.trim()).filter(c => c))
+      }
     } catch (error) {
       console.error('Failed to fetch profile:', error)
     }
@@ -38,6 +49,26 @@ const Profile = () => {
 
   const handleChange = (e) => {
     setProfile({ ...profile, [e.target.name]: e.target.value })
+  }
+
+  const handleAddCondition = () => {
+    if (conditionInput.trim() && !conditionsList.includes(conditionInput.trim())) {
+      const newList = [...conditionsList, conditionInput.trim()]
+      setConditionsList(newList)
+      setProfile({ ...profile, conditions: newList.join(', ') })
+      setConditionInput('')
+    }
+  }
+
+  const handleRemoveCondition = (condition) => {
+    const newList = conditionsList.filter(c => c !== condition)
+    setConditionsList(newList)
+    setProfile({ ...profile, conditions: newList.join(', ') })
+  }
+
+  const handleGoogleFitToggle = () => {
+    setGoogleFitConnected(!googleFitConnected)
+    // In real implementation, this would trigger OAuth flow
   }
 
   const handleSubmit = async (e) => {
@@ -161,61 +192,179 @@ const Profile = () => {
 
             {/* Medical Information */}
             <div className="border-b border-slate-200 dark:border-slate-700 pb-6">
-              <h2 className="text-xl font-semibold mb-4">Medical Information</h2>
+              <h2 className="text-xl font-semibold mb-4 text-neutral-text">Medical Information</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Medical Conditions</label>
-                  <textarea
-                    name="conditions"
-                    value={profile.conditions}
-                    onChange={handleChange}
-                    placeholder="e.g., Diabetes, Hypertension, Asthma"
-                    rows="3"
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-700"
-                  />
+                  <label className="block text-sm font-medium text-neutral-text mb-2">
+                    Medical Conditions
+                  </label>
+                  <div className="flex space-x-2 mb-3">
+                    <input
+                      type="text"
+                      value={conditionInput}
+                      onChange={(e) => setConditionInput(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCondition())}
+                      placeholder="e.g., Diabetes, Hypertension"
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleAddCondition}
+                      icon={<Plus className="w-4 h-4" />}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  
+                  {/* Condition Chips */}
+                  {conditionsList.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      <AnimatePresence>
+                        {conditionsList.map((condition) => (
+                          <motion.div
+                            key={condition}
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            className="inline-flex items-center space-x-2 bg-primary-50 border border-primary-200 rounded-full px-3 py-1"
+                          >
+                            <span className="text-sm font-medium text-primary">{condition}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCondition(condition)}
+                              className="p-0.5 hover:bg-primary-200 rounded-full transition-colors"
+                            >
+                              <X className="w-3 h-3 text-primary-600" />
+                            </button>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                  )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Drug Allergies</label>
+                  <label className="block text-sm font-medium text-neutral-text mb-2">
+                    Drug Allergies
+                  </label>
                   <textarea
                     name="drug_allergies"
                     value={profile.drug_allergies}
                     onChange={handleChange}
                     placeholder="e.g., Penicillin, Aspirin"
                     rows="2"
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-700"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Separate multiple allergies with commas
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Food Allergies</label>
-                  <textarea
-                    name="food_allergies"
-                    value={profile.food_allergies}
-                    onChange={handleChange}
-                    placeholder="e.g., Peanuts, Shellfish"
-                    rows="2"
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-700"
-                  />
-                </div>
+                {/* Progressive Disclosure for Additional Allergies */}
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  className="flex items-center space-x-2 text-primary hover:text-primary-600 transition-colors"
+                >
+                  {showAdvanced ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                  <span className="text-sm font-medium">
+                    {showAdvanced ? 'Hide' : 'Show'} additional allergy information
+                  </span>
+                </button>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Other Allergies</label>
-                  <textarea
-                    name="other_allergies"
-                    value={profile.other_allergies}
-                    onChange={handleChange}
-                    placeholder="e.g., Latex, Pollen"
-                    rows="2"
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-700"
-                  />
+                <AnimatePresence>
+                  {showAdvanced && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-4"
+                    >
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-text mb-2">
+                          Food Allergies
+                        </label>
+                        <textarea
+                          name="food_allergies"
+                          value={profile.food_allergies}
+                          onChange={handleChange}
+                          placeholder="e.g., Peanuts, Shellfish"
+                          rows="2"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-neutral-text mb-2">
+                          Other Allergies
+                        </label>
+                        <textarea
+                          name="other_allergies"
+                          value={profile.other_allergies}
+                          onChange={handleChange}
+                          placeholder="e.g., Latex, Pollen"
+                          rows="2"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Google Fit Integration */}
+            <div className="border-b border-slate-200 dark:border-slate-700 pb-6">
+              <h2 className="text-xl font-semibold mb-4 text-neutral-text flex items-center space-x-2">
+                <Activity className="w-5 h-5 text-primary" />
+                <span>Google Fit Integration</span>
+              </h2>
+              <div className="bg-gradient-to-br from-primary-50 to-accent-50 rounded-lg p-4 border border-primary-100">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-neutral-text mb-1">
+                      Connect Google Fit
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Sync your health data for more accurate recommendations
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGoogleFitToggle}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      googleFitConnected ? 'bg-primary' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        googleFitConnected ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
                 </div>
+                
+                {googleFitConnected && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="flex items-center space-x-2 text-sm text-success"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Connected • Last synced: Just now</span>
+                  </motion.div>
+                )}
               </div>
             </div>
 
             {/* Lifestyle */}
             <div className="pb-6">
-              <h2 className="text-xl font-semibold mb-4">Lifestyle</h2>
+              <h2 className="text-xl font-semibold mb-4 text-neutral-text">Lifestyle</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Smoking Status</label>

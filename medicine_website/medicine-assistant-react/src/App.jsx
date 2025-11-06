@@ -7,6 +7,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
 import Dashboard from './pages/Dashboard'
+import Results from './pages/Results'
+import History from './pages/History'
 import ChatbotButton from './components/chatbot/ChatbotButton'
 
 function App() {
@@ -18,6 +20,8 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/results" element={<Results />} />
+            <Route path="/history" element={<History />} />
             <Route
               path="/profile"
               element={
