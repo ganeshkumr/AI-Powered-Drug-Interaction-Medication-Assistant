@@ -1,0 +1,236 @@
+{
+  "aspirin": {
+    "max_daily_mg": 4000,
+    "max_single_mg": 1000,
+    "unit": "mg",
+    "warnings": ["High doses can cause stomach bleeding", "Not recommended for children under 12"]
+  },
+  "ibuprofen": {
+    "max_daily_mg": 3200,
+    "max_single_mg": 800,
+    "unit": "mg",
+    "warnings": ["Can cause stomach ulcers", "May increase bleeding risk"]
+  },
+  "acetaminophen": {
+    "max_daily_mg": 4000,
+    "max_single_mg": 1000,
+    "unit": "mg",
+    "warnings": ["Overdose can cause liver damage", "Check other medications for acetaminophen content"]
+  },
+  "metformin": {
+    "max_daily_mg": 2550,
+    "max_single_mg": 1000,
+    "unit": "mg",
+    "warnings": ["Can cause lactic acidosis in high doses", "Monitor kidney function"]
+  },
+  "lisinopril": {
+    "max_daily_mg": 80,
+    "max_single_mg": 40,
+    "unit": "mg",
+    "warnings": ["Can cause kidney problems", "Monitor blood pressure"]
+  },
+  "atorvastatin": {
+    "max_daily_mg": 80,
+    "max_single_mg": 80,
+    "unit": "mg",
+    "warnings": ["Can cause muscle problems", "Monitor liver function"]
+  },
+  "warfarin": {
+    "max_daily_mg": 20,
+    "max_single_mg": 10,
+    "unit": "mg",
+    "warnings": ["Requires regular blood monitoring", "High bleeding risk"]
+  },
+  "prednisone": {
+    "max_daily_mg": 80,
+    "max_single_mg": 40,
+    "unit": "mg",
+    "warnings": ["Can suppress immune system", "Long-term use causes side effects"]
+  },
+  "omeprazole": {
+    "max_daily_mg": 40,
+    "max_single_mg": 40,
+    "unit": "mg",
+    "warnings": ["Long-term use may cause bone fractures", "Can affect magnesium levels"]
+  },
+  "amoxicillin": {
+    "max_daily_mg": 3000,
+    "max_single_mg": 1000,
+    "unit": "mg",
+    "warnings": ["Can cause allergic reactions", "May cause diarrhea"]
+  },
+  "citalopram": {
+    "max_daily_mg": 40,
+    "max_single_mg": 20,
+    "unit": "mg",
+    "warnings": ["Can cause heart rhythm problems", "May increase suicide risk in young adults"]
+  },
+  "sertraline": {
+    "max_daily_mg": 200,
+    "max_single_mg": 100,
+    "unit": "mg",
+    "warnings": ["Can cause sexual dysfunction", "May increase suicide risk in young adults"]
+  },
+  "tramadol": {
+    "max_daily_mg": 400,
+    "max_single_mg": 100,
+    "unit": "mg",
+    "warnings": ["Can cause addiction", "May cause seizures"]
+  },
+  "morphine": {
+    "max_daily_mg": 200,
+    "max_single_mg": 30,
+    "unit": "mg",
+    "warnings": ["High addiction potential", "Can cause respiratory depression"]
+  },
+  "furosemide": {
+    "max_daily_mg": 600,
+    "max_single_mg": 200,
+    "unit": "mg",
+    "warnings": ["Can cause dehydration", "May cause kidney problems"]
+  },
+  "digoxin": {
+    "max_daily_mg": 0.5,
+    "max_single_mg": 0.25,
+    "unit": "mg",
+    "warnings": ["Narrow therapeutic window", "Requires blood level monitoring"]
+  },
+  "levothyroxine": {
+    "max_daily_mcg": 300,
+    "max_single_mcg": 150,
+    "unit": "mcg",
+    "warnings": ["Requires thyroid function monitoring", "Can cause heart problems if overdosed"]
+  },
+  "insulin": {
+    "max_daily_units": 200,
+    "max_single_units": 50,
+    "unit": "units",
+    "warnings": ["Can cause severe hypoglycemia", "Requires blood glucose monitoring"]
+  },
+  "vitamin_d": {
+    "max_daily_iu": 4000,
+    "max_single_iu": 2000,
+    "unit": "IU",
+    "warnings": ["High doses can cause kidney stones", "May cause calcium buildup"]
+  },
+  "calcium": {
+    "max_daily_mg": 2500,
+    "max_single_mg": 1000,
+    "unit": "mg",
+    "warnings": ["High doses can cause kidney stones", "May interfere with other medications"]
+  },
+  "paclitaxel": {
+    "max_daily_mg": 300,
+    "max_single_mg": 175,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause severe allergic reactions", "May cause nerve damage", "Monitor blood counts regularly"]
+  },
+  "doxorubicin": {
+    "max_daily_mg": 60,
+    "max_single_mg": 60,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause heart damage", "May cause severe nausea", "Monitor heart function"]
+  },
+  "cisplatin": {
+    "max_daily_mg": 100,
+    "max_single_mg": 100,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause kidney damage", "May cause hearing loss", "Monitor kidney function"]
+  },
+  "methotrexate": {
+    "max_daily_mg": 15,
+    "max_single_mg": 15,
+    "unit": "mg",
+    "warnings": ["Can cause liver damage", "May cause bone marrow suppression", "Requires folic acid supplementation", "Monitor liver function"]
+  },
+  "cyclophosphamide": {
+    "max_daily_mg": 200,
+    "max_single_mg": 200,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause bladder damage", "May cause infertility", "Monitor blood counts"]
+  },
+  "carboplatin": {
+    "max_daily_mg": 400,
+    "max_single_mg": 400,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause kidney damage", "May cause hearing loss", "Monitor kidney function"]
+  },
+  "oxaliplatin": {
+    "max_daily_mg": 130,
+    "max_single_mg": 130,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause nerve damage", "May cause severe cold sensitivity", "Monitor neurological function"]
+  },
+  "docetaxel": {
+    "max_daily_mg": 100,
+    "max_single_mg": 100,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause fluid retention", "May cause severe allergic reactions", "Monitor for fluid retention"]
+  },
+  "gemcitabine": {
+    "max_daily_mg": 1000,
+    "max_single_mg": 1000,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause flu-like symptoms", "May cause blood disorders", "Monitor blood counts"]
+  },
+  "fluorouracil": {
+    "max_daily_mg": 600,
+    "max_single_mg": 600,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause severe diarrhea", "May cause hand-foot syndrome", "Monitor for skin reactions"]
+  },
+  "irinotecan": {
+    "max_daily_mg": 350,
+    "max_single_mg": 350,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause severe diarrhea", "May cause blood disorders", "Monitor blood counts"]
+  },
+  "etoposide": {
+    "max_daily_mg": 100,
+    "max_single_mg": 100,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause blood disorders", "May cause hair loss", "Monitor blood counts"]
+  },
+  "vincristine": {
+    "max_daily_mg": 2,
+    "max_single_mg": 2,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause nerve damage", "May cause constipation", "Monitor neurological function"]
+  },
+  "vinblastine": {
+    "max_daily_mg": 10,
+    "max_single_mg": 10,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause blood disorders", "May cause hair loss", "Monitor blood counts"]
+  },
+  "bleomycin": {
+    "max_daily_mg": 30,
+    "max_single_mg": 30,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause lung damage", "May cause fever", "Monitor lung function"]
+  },
+  "dacarbazine": {
+    "max_daily_mg": 1000,
+    "max_single_mg": 1000,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause severe nausea", "May cause blood disorders", "Monitor blood counts"]
+  },
+  "temozolomide": {
+    "max_daily_mg": 200,
+    "max_single_mg": 200,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause blood disorders", "May cause fatigue", "Monitor blood counts"]
+  },
+  "capecitabine": {
+    "max_daily_mg": 2500,
+    "max_single_mg": 1250,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause hand-foot syndrome", "May cause diarrhea", "Monitor for skin reactions"]
+  },
+  "pemetrexed": {
+    "max_daily_mg": 500,
+    "max_single_mg": 500,
+    "unit": "mg",
+    "warnings": ["Chemotherapy drug - requires medical supervision", "Can cause blood disorders", "May cause fatigue", "Requires folic acid supplementation"]
+  }
+}

@@ -1,0 +1,299 @@
+{
+  "aspirin": {
+    "common_side_effects": [
+      "Stomach irritation and ulcers",
+      "Increased bleeding risk",
+      "Nausea and vomiting",
+      "Heartburn and indigestion",
+      "Allergic reactions (rare)"
+    ],
+    "serious_side_effects": [
+      "Severe stomach bleeding",
+      "Kidney problems",
+      "Liver damage (high doses)",
+      "Reye's syndrome in children"
+    ],
+    "risk_factors": {
+      "age_65_plus": "Higher bleeding risk",
+      "stomach_problems": "Increased ulcer risk",
+      "blood_thinners": "Severe bleeding risk",
+      "kidney_disease": "Kidney damage risk"
+    }
+  },
+  "ibuprofen": {
+    "common_side_effects": [
+      "Stomach pain and nausea",
+      "Heartburn and indigestion",
+      "Dizziness and headache",
+      "Mild allergic reactions"
+    ],
+    "serious_side_effects": [
+      "Stomach ulcers and bleeding",
+      "Kidney damage",
+      "Liver problems",
+      "Heart attack risk (long-term use)"
+    ],
+    "risk_factors": {
+      "age_60_plus": "Higher kidney risk",
+      "heart_disease": "Increased heart attack risk",
+      "kidney_disease": "Severe kidney damage",
+      "stomach_ulcers": "Bleeding risk"
+    }
+  },
+  "acetaminophen": {
+    "common_side_effects": [
+      "Rare allergic reactions",
+      "Mild stomach upset"
+    ],
+    "serious_side_effects": [
+      "Liver damage (overdose)",
+      "Severe allergic reactions",
+      "Blood disorders (rare)"
+    ],
+    "risk_factors": {
+      "liver_disease": "Severe liver damage",
+      "alcohol_use": "Increased liver risk",
+      "high_doses": "Liver failure risk"
+    }
+  },
+  "metformin": {
+    "common_side_effects": [
+      "Nausea and vomiting",
+      "Diarrhea and stomach upset",
+      "Metallic taste",
+      "Loss of appetite"
+    ],
+    "serious_side_effects": [
+      "Lactic acidosis (rare)",
+      "Kidney problems",
+      "Liver damage",
+      "Severe allergic reactions"
+    ],
+    "risk_factors": {
+      "kidney_disease": "Lactic acidosis risk",
+      "liver_disease": "Increased toxicity",
+      "heart_failure": "Lactic acidosis risk",
+      "age_80_plus": "Higher side effect risk"
+    }
+  },
+  "lisinopril": {
+    "common_side_effects": [
+      "Dry cough",
+      "Dizziness and fatigue",
+      "Headache",
+      "Nausea"
+    ],
+    "serious_side_effects": [
+      "Severe allergic reactions",
+      "Kidney problems",
+      "High potassium levels",
+      "Liver damage"
+    ],
+    "risk_factors": {
+      "kidney_disease": "Kidney failure risk",
+      "high_potassium": "Heart rhythm problems",
+      "pregnancy": "Birth defects",
+      "liver_disease": "Increased toxicity"
+    }
+  },
+  "atorvastatin": {
+    "common_side_effects": [
+      "Muscle pain and weakness",
+      "Headache and dizziness",
+      "Nausea and stomach upset",
+      "Sleep problems"
+    ],
+    "serious_side_effects": [
+      "Severe muscle damage",
+      "Liver problems",
+      "Memory loss",
+      "Diabetes risk"
+    ],
+    "risk_factors": {
+      "liver_disease": "Liver damage risk",
+      "muscle_disorders": "Severe muscle damage",
+      "age_65_plus": "Higher muscle risk",
+      "thyroid_problems": "Increased muscle risk"
+    }
+  },
+  "warfarin": {
+    "common_side_effects": [
+      "Easy bruising",
+      "Bleeding gums",
+      "Nausea and vomiting",
+      "Hair loss"
+    ],
+    "serious_side_effects": [
+      "Severe bleeding",
+      "Blood clots",
+      "Skin necrosis",
+      "Purple toe syndrome"
+    ],
+    "risk_factors": {
+      "bleeding_disorders": "Severe bleeding risk",
+      "liver_disease": "Increased bleeding",
+      "kidney_disease": "Bleeding complications",
+      "age_75_plus": "Higher bleeding risk"
+    }
+  },
+  "prednisone": {
+    "common_side_effects": [
+      "Weight gain",
+      "Mood changes",
+      "Sleep problems",
+      "Increased appetite"
+    ],
+    "serious_side_effects": [
+      "Bone loss",
+      "Diabetes",
+      "High blood pressure",
+      "Severe infections"
+    ],
+    "risk_factors": {
+      "diabetes": "Blood sugar problems",
+      "osteoporosis": "Bone fractures",
+      "infections": "Severe infection risk",
+      "long_term_use": "Multiple complications"
+    }
+  },
+  "omeprazole": {
+    "common_side_effects": [
+      "Headache",
+      "Nausea and vomiting",
+      "Diarrhea",
+      "Stomach pain"
+    ],
+    "serious_side_effects": [
+      "Bone fractures",
+      "Low magnesium",
+      "Kidney problems",
+      "Severe allergic reactions"
+    ],
+    "risk_factors": {
+      "long_term_use": "Bone fracture risk",
+      "kidney_disease": "Kidney damage",
+      "osteoporosis": "Fracture risk",
+      "age_50_plus": "Higher bone risk"
+    }
+  },
+  "amoxicillin": {
+    "common_side_effects": [
+      "Nausea and vomiting",
+      "Diarrhea",
+      "Rash",
+      "Stomach upset"
+    ],
+    "serious_side_effects": [
+      "Severe allergic reactions",
+      "Liver damage",
+      "Kidney problems",
+      "Blood disorders"
+    ],
+    "risk_factors": {
+      "penicillin_allergy": "Severe allergic reaction",
+      "liver_disease": "Liver damage risk",
+      "kidney_disease": "Kidney problems",
+      "mononucleosis": "Rash risk"
+    }
+  },
+  "paclitaxel": {
+    "common_side_effects": [
+      "Hair loss",
+      "Nausea and vomiting",
+      "Fatigue and weakness",
+      "Muscle and joint pain"
+    ],
+    "serious_side_effects": [
+      "Severe allergic reactions",
+      "Nerve damage",
+      "Blood disorders",
+      "Heart problems"
+    ],
+    "risk_factors": {
+      "liver_disease": "Increased toxicity",
+      "heart_disease": "Heart damage risk",
+      "nerve_disorders": "Severe nerve damage",
+      "allergies": "Severe allergic reactions"
+    }
+  },
+  "doxorubicin": {
+    "common_side_effects": [
+      "Hair loss",
+      "Nausea and vomiting",
+      "Fatigue",
+      "Mouth sores"
+    ],
+    "serious_side_effects": [
+      "Heart damage",
+      "Severe infections",
+      "Blood disorders",
+      "Secondary cancers"
+    ],
+    "risk_factors": {
+      "heart_disease": "Severe heart damage",
+      "previous_chemo": "Increased heart risk",
+      "age_65_plus": "Higher heart risk",
+      "radiation_therapy": "Heart damage risk"
+    }
+  },
+  "cisplatin": {
+    "common_side_effects": [
+      "Nausea and vomiting",
+      "Hair loss",
+      "Fatigue",
+      "Loss of appetite"
+    ],
+    "serious_side_effects": [
+      "Kidney damage",
+      "Hearing loss",
+      "Nerve damage",
+      "Severe allergic reactions"
+    ],
+    "risk_factors": {
+      "kidney_disease": "Severe kidney damage",
+      "hearing_problems": "Hearing loss risk",
+      "nerve_disorders": "Severe nerve damage",
+      "age_65_plus": "Higher toxicity risk"
+    }
+  },
+  "methotrexate": {
+    "common_side_effects": [
+      "Nausea and vomiting",
+      "Mouth sores",
+      "Fatigue",
+      "Hair loss"
+    ],
+    "serious_side_effects": [
+      "Liver damage",
+      "Bone marrow suppression",
+      "Lung problems",
+      "Severe infections"
+    ],
+    "risk_factors": {
+      "liver_disease": "Severe liver damage",
+      "kidney_disease": "Increased toxicity",
+      "lung_disease": "Lung damage risk",
+      "alcohol_use": "Liver damage risk"
+    }
+  },
+  "cyclophosphamide": {
+    "common_side_effects": [
+      "Hair loss",
+      "Nausea and vomiting",
+      "Fatigue",
+      "Loss of appetite"
+    ],
+    "serious_side_effects": [
+      "Bladder damage",
+      "Infertility",
+      "Blood disorders",
+      "Secondary cancers"
+    ],
+    "risk_factors": {
+      "bladder_problems": "Severe bladder damage",
+      "kidney_disease": "Bladder damage risk",
+      "fertility_concerns": "Infertility risk",
+      "long_term_use": "Cancer risk"
+    }
+  }
+}
