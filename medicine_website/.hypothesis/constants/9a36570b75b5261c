@@ -1,0 +1,4 @@
+# file: D:\Chatbot Prototype\medicine_website\response_validation.py
+# hypothesis_version: 6.150.2
+
+[100, 'CAUTION', 'CAUTION ADVISED', 'DO NOT ADD', 'SAFE', 'SAFE TO ADD', 'UNSAFE', 'ai_response', 'can_add', 'chatbot_medical', 'conversational', 'dosage_validation', 'drug1', 'drug2', 'emergency_check', 'gnn_risk', 'intent', 'llm_explanation', 'medical', 'quick_check', 'rag_interactions', 'response', 'status', 'timestamp', 'verdict']

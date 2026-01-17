@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Temp\torch_geometric.nn.conv.gat_conv_GATConv_edge_updater_ilmkcz9x.py
+# hypothesis_version: 6.150.2
+
+['alpha_i', 'alpha_j', 'dim_size', 'edge_attr', 'index', 'ptr', 'source_to_target']
