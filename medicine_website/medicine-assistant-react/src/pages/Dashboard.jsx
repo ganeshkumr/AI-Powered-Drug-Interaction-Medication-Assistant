@@ -1,6 +1,4 @@
 import { motion } from 'framer-motion'
-import HealthMonitoring from '../components/dashboard/HealthMonitoring'
-import EmergencyCheck from '../components/dashboard/EmergencyCheck'
 import MedicationForm from '../components/dashboard/MedicationForm'
 import MedicationList from '../components/dashboard/MedicationList'
 
@@ -46,14 +44,6 @@ const Dashboard = () => {
         animate="visible"
         className="space-y-6"
       >
-        <motion.div variants={itemVariants}>
-          <HealthMonitoring />
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <EmergencyCheck />
-        </motion.div>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <motion.div variants={itemVariants}>
             <MedicationForm />

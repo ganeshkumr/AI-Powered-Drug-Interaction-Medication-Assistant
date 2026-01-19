@@ -184,9 +184,17 @@
   - Smooth transition to wallet
   - _Requirements: 8.4_
 
+- [x] 17. Simplify Dashboard feature separation
+
+  - Remove Emergency Check from post-login dashboard
+  - Remove Live Health Monitoring from post-login dashboard
+  - Keep Emergency Check on pre-login landing page
+  - Focus dashboard on Add New Medication and Medication Wallet
+  - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
+
 ## Phase 6: Profile & Settings
 
-- [x] 17. Redesign Profile page
+- [x] 18. Redesign Profile page
 
 
   - Single-column form

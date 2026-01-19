@@ -134,3 +134,15 @@ This spec outlines the complete redesign of the Medicine Assistant frontend to c
 3. THE System SHALL provide "What data we read" modal for transparency
 4. THE System SHALL display last sync time for Google Fit
 5. THE System SHALL show privacy policy and terms links
+
+### Requirement 11: Dashboard Feature Separation
+
+**User Story:** As a logged-in user, I want a focused dashboard that shows only medication management features relevant to my authenticated session.
+
+#### Acceptance Criteria
+
+1. THE System SHALL NOT display Emergency Drug Check on the post-login dashboard
+2. THE System SHALL NOT display Live Health Monitoring on the post-login dashboard
+3. THE System SHALL display Add New Medication functionality on the post-login dashboard
+4. THE System SHALL display Medication Wallet on the post-login dashboard
+5. WHEN user is not logged in, THE System SHALL display Emergency Drug Check on the landing page

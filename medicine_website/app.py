@@ -368,7 +368,7 @@ class InteractionEngine:
         dosage_info: Optional[Dict] = None
     ) -> InteractionResult:
         """
-        Analyze drug interactions using GNN + RAG + LLM
+        Analyze drug interactions using GNN + RAG + LLM with graceful degradation
         
         Args:
             new_drug: The drug being added
@@ -379,35 +379,106 @@ class InteractionEngine:
         Returns:
             InteractionResult containing all analysis results
         """
+        # Track which components succeeded
+        gnn_available = False
+        rag_available = False
+        llm_available = False
+        
         try:
             # Handle single drug case (no existing drugs)
             if not existing_drugs or len(existing_drugs) == 0:
                 return self._handle_single_drug(new_drug, patient_profile, dosage_info)
             
-            # Step 1: GNN Prediction
-            gnn_risk = self._get_gnn_prediction(new_drug, existing_drugs)
+            # Step 1: GNN Prediction (with error handling)
+            gnn_risk = 0.0
+            try:
+                gnn_risk = self._get_gnn_prediction(new_drug, existing_drugs)
+                if gnn_risk > 0:
+                    gnn_available = True
+                    print(f"[SUCCESS] GNN prediction: {gnn_risk:.1f}%")
+                else:
+                    print("[WARNING] GNN prediction returned 0, continuing with RAG + LLM")
+            except Exception as gnn_error:
+                print(f"[ERROR] GNN component failed: {gnn_error}")
+                gnn_risk = 0.0
             
-            # Step 2: RAG System Lookup
-            rag_interactions = self._get_rag_interactions(new_drug, existing_drugs)
+            # Step 2: RAG System Lookup (with error handling)
+            rag_interactions = []
+            try:
+                rag_interactions = self._get_rag_interactions(new_drug, existing_drugs)
+                if rag_interactions:
+                    rag_available = True
+                    print(f"[SUCCESS] RAG found {len(rag_interactions)} interactions")
+                else:
+                    print("[WARNING] RAG found no interactions, continuing with GNN + LLM")
+            except Exception as rag_error:
+                print(f"[ERROR] RAG component failed: {rag_error}")
+                rag_interactions = []
             
             # Step 3: Build comprehensive context
-            context = self._build_context(
-                new_drug, 
-                existing_drugs, 
-                gnn_risk, 
-                rag_interactions,
-                patient_profile,
-                dosage_info
-            )
+            try:
+                context = self._build_context(
+                    new_drug, 
+                    existing_drugs, 
+                    gnn_risk, 
+                    rag_interactions,
+                    patient_profile,
+                    dosage_info
+                )
+            except Exception as context_error:
+                print(f"[ERROR] Context building failed: {context_error}")
+                # Build minimal context
+                context = f"New Drug: {new_drug}\nExisting Drugs: {', '.join(existing_drugs)}\nGNN Risk: {gnn_risk:.1f}%"
             
-            # Step 4: Get LLM explanation
-            llm_explanation = self._get_llm_explanation(context)
+            # Step 4: Get LLM explanation (with error handling and timeout)
+            llm_explanation = ""
+            try:
+                llm_explanation = self._get_llm_explanation(context)
+                if llm_explanation and len(llm_explanation.strip()) > 0:
+                    llm_available = True
+                    print("[SUCCESS] LLM explanation generated")
+                else:
+                    print("[WARNING] LLM returned empty response")
+            except Exception as llm_error:
+                print(f"[ERROR] LLM component failed: {llm_error}")
+                llm_explanation = generate_fallback_response(context)
+            
+            # Add component availability notice to explanation if any failed
+            if not gnn_available or not rag_available or not llm_available:
+                availability_notice = "\n\n⚠️ Note: "
+                failed_components = []
+                if not gnn_available:
+                    failed_components.append("AI risk prediction")
+                if not rag_available:
+                    failed_components.append("database lookup")
+                if not llm_available:
+                    failed_components.append("detailed analysis")
+                
+                if failed_components:
+                    availability_notice += f"{', '.join(failed_components)} unavailable. "
+                    availability_notice += "Analysis based on available components. Please consult a healthcare professional."
+                    llm_explanation += availability_notice
             
             # Step 5: Determine verdict
-            verdict = self._determine_verdict(llm_explanation, gnn_risk, rag_interactions)
+            try:
+                verdict = self._determine_verdict(llm_explanation, gnn_risk, rag_interactions)
+            except Exception as verdict_error:
+                print(f"[ERROR] Verdict determination failed: {verdict_error}")
+                # Conservative default
+                verdict = "DO NOT ADD"
             
             # Step 6: Validate dosage if provided
-            dosage_validation = self._validate_dosage(new_drug, dosage_info)
+            dosage_validation = {}
+            try:
+                dosage_validation = self._validate_dosage(new_drug, dosage_info)
+            except Exception as dosage_error:
+                print(f"[ERROR] Dosage validation failed: {dosage_error}")
+                dosage_validation = {
+                    'is_safe': False,
+                    'warnings': ['Dosage validation failed'],
+                    'max_daily': None,
+                    'max_single': None
+                }
             
             # Step 7: Determine if can add (both interaction and dosage must be safe)
             interaction_safe = "SAFE TO ADD" in verdict
@@ -425,17 +496,17 @@ class InteractionEngine:
             )
             
         except Exception as e:
-            print(f"[ERROR] InteractionEngine error: {e}")
+            print(f"[ERROR] InteractionEngine critical error: {e}")
             import traceback
             traceback.print_exc()
-            # Return safe fallback
+            # Return safe fallback with conservative verdict
             return InteractionResult(
                 gnn_risk=0.0,
                 rag_interactions=[],
-                llm_explanation=f"Unable to analyze interaction. Please consult a healthcare professional. Error: {str(e)}",
+                llm_explanation=f"Unable to complete analysis due to system error. Please consult a healthcare professional immediately. Error: {str(e)}",
                 verdict="DO NOT ADD",
                 can_add=False,
-                dosage_validation={'is_safe': False, 'warnings': ['Analysis failed']},
+                dosage_validation={'is_safe': False, 'warnings': ['Analysis failed - system error']},
                 timestamp=datetime.now().isoformat()
             )
     
@@ -463,9 +534,10 @@ class InteractionEngine:
         )
     
     def _get_gnn_prediction(self, new_drug: str, existing_drugs: List[str]) -> float:
-        """Get GNN risk prediction for drug interactions"""
+        """Get GNN risk prediction for drug interactions with error handling"""
         try:
             if not self.gnn_model or not self.drug_map:
+                print("[WARNING] GNN model or drug_map not available")
                 return 0.0
             
             # Convert drug names to indices
@@ -480,6 +552,7 @@ class InteractionEngine:
                     break
             
             if new_drug_idx is None:
+                print(f"[WARNING] Drug '{new_drug}' not found in drug_map")
                 return 0.0
             
             # Find existing drug indices
@@ -491,6 +564,7 @@ class InteractionEngine:
                         break
             
             if not existing_drug_indices:
+                print("[WARNING] No existing drugs found in drug_map")
                 return 0.0
             
             # Calculate average risk across all existing medications
@@ -498,21 +572,26 @@ class InteractionEngine:
             count = 0
             
             for existing_idx in existing_drug_indices:
-                # Create edge index for this pair
-                edge_index = torch.tensor([[new_drug_idx], [existing_idx]], dtype=torch.long)
-                
-                # Get node embeddings
-                with torch.no_grad():
-                    all_nodes = torch.tensor(list(range(len(self.drug_map))), dtype=torch.long)
-                    edge_index_full = torch.tensor([[new_drug_idx, existing_idx], [existing_idx, new_drug_idx]], dtype=torch.long)
+                try:
+                    # Create edge index for this pair
+                    edge_index = torch.tensor([[new_drug_idx], [existing_idx]], dtype=torch.long)
                     
-                    # Get predictions
-                    z = self.gnn_model.encode(all_nodes, edge_index_full)
-                    pred = self.gnn_model.decode(z, edge_index)
-                    risk_score = torch.sigmoid(pred).item()
-                    
-                    total_risk += risk_score
-                    count += 1
+                    # Get node embeddings
+                    with torch.no_grad():
+                        all_nodes = torch.tensor(list(range(len(self.drug_map))), dtype=torch.long)
+                        edge_index_full = torch.tensor([[new_drug_idx, existing_idx], [existing_idx, new_drug_idx]], dtype=torch.long)
+                        
+                        # Get predictions
+                        z = self.gnn_model.encode(all_nodes, edge_index_full)
+                        pred = self.gnn_model.decode(z, edge_index)
+                        risk_score = torch.sigmoid(pred).item()
+                        
+                        total_risk += risk_score
+                        count += 1
+                except Exception as pair_error:
+                    print(f"[ERROR] GNN prediction failed for drug pair: {pair_error}")
+                    # Continue with other pairs
+                    continue
             
             if count > 0:
                 avg_risk = (total_risk / count) * 100
@@ -522,22 +601,37 @@ class InteractionEngine:
             
         except Exception as e:
             print(f"[ERROR] GNN prediction failed: {e}")
+            import traceback
+            traceback.print_exc()
+            # Return 0 to allow system to continue with RAG + LLM
             return 0.0
     
     def _get_rag_interactions(self, new_drug: str, existing_drugs: List[str]) -> List[Dict]:
-        """Get documented interactions from RAG system"""
+        """Get documented interactions from RAG system with error handling"""
         try:
+            if not self.rag_system or not self.rag_system.df is not None:
+                print("[WARNING] RAG system not available")
+                return []
+            
             interactions = []
             
             for existing_drug in existing_drugs:
-                interaction = self.rag_system.search_interaction(new_drug, existing_drug)
-                if interaction:
-                    interactions.append(interaction)
+                try:
+                    interaction = self.rag_system.search_interaction(new_drug, existing_drug)
+                    if interaction:
+                        interactions.append(interaction)
+                except Exception as search_error:
+                    print(f"[ERROR] RAG search failed for {new_drug} and {existing_drug}: {search_error}")
+                    # Continue with other drugs
+                    continue
             
             return interactions
             
         except Exception as e:
             print(f"[ERROR] RAG lookup failed: {e}")
+            import traceback
+            traceback.print_exc()
+            # Return empty list to allow system to continue with GNN + LLM
             return []
     
     def _build_context(
@@ -636,12 +730,31 @@ class InteractionEngine:
         return context
     
     def _get_llm_explanation(self, context: str) -> str:
-        """Get LLM explanation using existing ask_local_llm function"""
+        """Get LLM explanation using existing ask_local_llm function with timeout and error handling"""
         try:
+            # Set a timeout for LLM API calls (handled in ask_local_llm)
             explanation = ask_local_llm(context)
+            
+            # Debug: Print what we got from the AI
+            print(f"[DEBUG] AI Response length: {len(explanation) if explanation else 0}")
+            print(f"[DEBUG] AI Response preview: {explanation[:200] if explanation else 'None'}...")
+            
+            if not explanation or len(explanation.strip()) == 0:
+                print("[WARNING] LLM returned empty response, using fallback")
+                return generate_fallback_response(context)
+            
             return explanation
+            
+        except requests.exceptions.Timeout as timeout_error:
+            print(f"[ERROR] LLM request timed out: {timeout_error}")
+            return generate_fallback_response(context)
+        except requests.exceptions.RequestException as req_error:
+            print(f"[ERROR] LLM request failed: {req_error}")
+            return generate_fallback_response(context)
         except Exception as e:
             print(f"[ERROR] LLM explanation failed: {e}")
+            import traceback
+            traceback.print_exc()
             # Use fallback response generator
             return generate_fallback_response(context)
     
@@ -650,6 +763,12 @@ class InteractionEngine:
         Determine verdict using deterministic logic based on GNN risk and RAG interactions.
         This ensures consistency across multiple calls with the same inputs.
         LLM explanation is for human readability only and doesn't affect the verdict.
+        
+        Verdict rules:
+        - Risk > 70: "DO NOT ADD"
+        - Risk 30-70 (inclusive): "CAUTION ADVISED"
+        - Risk < 30: "SAFE TO ADD"
+        - RAG severity overrides GNN risk
         """
         # Use deterministic logic based on risk score and interactions
         # Check RAG interactions for severity first (highest priority)
@@ -663,13 +782,13 @@ class InteractionEngine:
         # Then check GNN risk score
         if gnn_risk > 70:
             return "DO NOT ADD"
-        elif gnn_risk > 30:
+        elif gnn_risk >= 30:  # Changed from > 30 to >= 30
             return "CAUTION ADVISED"
         
         return "SAFE TO ADD"
     
     def _validate_dosage(self, drug: str, dosage_info: Optional[Dict]) -> Dict:
-        """Validate dosage using dosage validator"""
+        """Validate dosage using dosage validator with error handling"""
         if not dosage_info:
             return {
                 'is_safe': True,
@@ -682,10 +801,10 @@ class InteractionEngine:
             dosage_amount = dosage_info.get('dosage_amount')
             dosage_unit = dosage_info.get('dosage_unit', 'mg')
             frequency = dosage_info.get('frequency', 'daily')
-
+            
             return self.dosage_validator.validate_dosage(drug, dosage_amount, dosage_unit, frequency)
         except Exception as e:
-            print(f'[ERROR] Dosage validation failed: {e}')
+            print(f"[ERROR] Dosage validation failed: {e}")
             import traceback
             traceback.print_exc()
             # Return conservative result
@@ -961,6 +1080,165 @@ except Exception as e:
     print(f"[ERROR] Failed to initialize ConversationalHandler: {e}")
     conversational_handler = None
 
+# --- Response Format Validation ---
+def validate_interaction_result(result: InteractionResult) -> bool:
+    """
+    Validate that InteractionResult has all required fields with correct types
+    
+    Args:
+        result: InteractionResult to validate
+        
+    Returns:
+        True if valid, False otherwise
+    """
+    try:
+        # Check all required fields exist
+        required_fields = ['gnn_risk', 'rag_interactions', 'llm_explanation', 
+                          'verdict', 'can_add', 'dosage_validation', 'timestamp']
+        
+        for field in required_fields:
+            if not hasattr(result, field):
+                print(f"[VALIDATION ERROR] Missing field: {field}")
+                return False
+        
+        # Validate field types
+        if not isinstance(result.gnn_risk, (int, float)):
+            print(f"[VALIDATION ERROR] gnn_risk must be numeric, got {type(result.gnn_risk)}")
+            return False
+        
+        if not isinstance(result.rag_interactions, list):
+            print(f"[VALIDATION ERROR] rag_interactions must be list, got {type(result.rag_interactions)}")
+            return False
+        
+        if not isinstance(result.llm_explanation, str):
+            print(f"[VALIDATION ERROR] llm_explanation must be string, got {type(result.llm_explanation)}")
+            return False
+        
+        if not isinstance(result.verdict, str):
+            print(f"[VALIDATION ERROR] verdict must be string, got {type(result.verdict)}")
+            return False
+        
+        if not isinstance(result.can_add, bool):
+            print(f"[VALIDATION ERROR] can_add must be bool, got {type(result.can_add)}")
+            return False
+        
+        if not isinstance(result.dosage_validation, dict):
+            print(f"[VALIDATION ERROR] dosage_validation must be dict, got {type(result.dosage_validation)}")
+            return False
+        
+        if not isinstance(result.timestamp, str):
+            print(f"[VALIDATION ERROR] timestamp must be string, got {type(result.timestamp)}")
+            return False
+        
+        # Validate verdict values
+        valid_verdicts = ['SAFE TO ADD', 'CAUTION ADVISED', 'DO NOT ADD']
+        if result.verdict not in valid_verdicts:
+            print(f"[VALIDATION ERROR] Invalid verdict: {result.verdict}")
+            return False
+        
+        # Validate gnn_risk range
+        if not (0 <= result.gnn_risk <= 100):
+            print(f"[VALIDATION ERROR] gnn_risk must be 0-100, got {result.gnn_risk}")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"[VALIDATION ERROR] Exception during validation: {e}")
+        return False
+
+def validate_response_format(response_dict: Dict, endpoint_type: str) -> bool:
+    """
+    Validate that response dictionary has standardized format for the endpoint
+    
+    Args:
+        response_dict: Response dictionary to validate
+        endpoint_type: Type of endpoint ('quick_check', 'emergency_check', 'chatbot_medical', 'chatbot_conversational')
+        
+    Returns:
+        True if valid, False otherwise
+    """
+    try:
+        if endpoint_type == 'quick_check':
+            # Quick Check must have: gnn_risk, verdict, ai_response, can_add
+            required = ['gnn_risk', 'verdict', 'ai_response', 'can_add']
+            for field in required:
+                if field not in response_dict:
+                    print(f"[VALIDATION ERROR] Quick Check missing field: {field}")
+                    return False
+            
+            # Validate types
+            if not isinstance(response_dict['gnn_risk'], (int, float)):
+                return False
+            if not isinstance(response_dict['verdict'], str):
+                return False
+            if not isinstance(response_dict['ai_response'], str):
+                return False
+            if not isinstance(response_dict['can_add'], bool):
+                return False
+            
+        elif endpoint_type == 'emergency_check':
+            # Emergency Check must have: status, response, gnn_risk, drug1, drug2
+            required = ['status', 'response', 'gnn_risk', 'drug1', 'drug2']
+            for field in required:
+                if field not in response_dict:
+                    print(f"[VALIDATION ERROR] Emergency Check missing field: {field}")
+                    return False
+            
+            # Validate types
+            if not isinstance(response_dict['status'], str):
+                return False
+            if not isinstance(response_dict['response'], str):
+                return False
+            if not isinstance(response_dict['gnn_risk'], (int, float)):
+                return False
+            
+            # Validate status values
+            valid_statuses = ['SAFE', 'CAUTION', 'UNSAFE']
+            if response_dict['status'] not in valid_statuses:
+                print(f"[VALIDATION ERROR] Invalid status: {response_dict['status']}")
+                return False
+            
+        elif endpoint_type == 'chatbot_medical':
+            # Chatbot medical must have: response, verdict, gnn_risk, intent
+            required = ['response', 'verdict', 'gnn_risk', 'intent']
+            for field in required:
+                if field not in response_dict:
+                    print(f"[VALIDATION ERROR] Chatbot medical missing field: {field}")
+                    return False
+            
+            # Validate types
+            if not isinstance(response_dict['response'], str):
+                return False
+            if not isinstance(response_dict['verdict'], str):
+                return False
+            if not isinstance(response_dict['gnn_risk'], (int, float)):
+                return False
+            if response_dict['intent'] != 'medical':
+                print(f"[VALIDATION ERROR] Intent must be 'medical', got {response_dict['intent']}")
+                return False
+            
+        elif endpoint_type == 'chatbot_conversational':
+            # Chatbot conversational must have: response, intent
+            required = ['response', 'intent']
+            for field in required:
+                if field not in response_dict:
+                    print(f"[VALIDATION ERROR] Chatbot conversational missing field: {field}")
+                    return False
+            
+            # Validate types
+            if not isinstance(response_dict['response'], str):
+                return False
+            if response_dict['intent'] != 'conversational':
+                print(f"[VALIDATION ERROR] Intent must be 'conversational', got {response_dict['intent']}")
+                return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"[VALIDATION ERROR] Exception during response validation: {e}")
+        return False
+
 # --- Personalized Dosage Adjustment ---
 def calculate_personalized_dosage(drug_name, dosage_amount, patient_profile):
     """Calculate personalized dosage based on patient profile"""
@@ -1223,9 +1501,9 @@ Verdict: SAFE TO ADD
         
         # Try multiple models in order of preference
         models_to_try = [
-            "nousresearch/hermes-3-llama-3.1-405b:free",  # Most powerful
-            "meta-llama/llama-3.2-3b-instruct:free",      # Fast and reliable
-            "mistralai/mistral-7b-instruct:free"          # Backup
+            "openai/gpt-3.5-turbo",           # Fast and reliable
+            "anthropic/claude-instant-1.2",      # Backup option
+            "google/gemini-pro"                # Alternative backup
         ]
         
         for model in models_to_try:
@@ -1570,11 +1848,19 @@ def ask_assistant():
         if intent.type == "conversational":
             # Use ConversationalHandler for casual conversation
             response = conversational_handler.handle(message, intent)
-            return jsonify({
+            
+            response_data = {
                 'response': response,
                 'intent': 'conversational',
                 'timestamp': datetime.now().isoformat()
-            })
+            }
+            
+            # Validate response format
+            if not validate_response_format(response_data, 'chatbot_conversational'):
+                print("[ERROR] Chatbot: Conversational response format validation failed")
+                return jsonify({'error': 'Internal validation error'}), 500
+            
+            return jsonify(response_data)
         
         # Step 3: Medical intent - use InteractionEngine
         conn = get_db_connection()
@@ -1603,13 +1889,25 @@ def ask_assistant():
             patient_profile=patient
         )
         
-        return jsonify({
+        # Validate InteractionResult format
+        if not validate_interaction_result(result):
+            print("[ERROR] Chatbot: InteractionResult validation failed")
+            return jsonify({'error': 'Internal validation error'}), 500
+        
+        response_data = {
             'response': result.llm_explanation,
             'verdict': result.verdict,
             'gnn_risk': result.gnn_risk,
             'intent': 'medical',
             'timestamp': datetime.now().isoformat()
-        })
+        }
+        
+        # Validate response format
+        if not validate_response_format(response_data, 'chatbot_medical'):
+            print("[ERROR] Chatbot: Medical response format validation failed")
+            return jsonify({'error': 'Internal validation error'}), 500
+        
+        return jsonify(response_data)
         
     except Exception as e:
         print(f"[ERROR] Chatbot error: {e}")
@@ -1745,6 +2043,15 @@ def emergency_check():
             patient_profile=None  # Anonymous emergency check
         )
         
+        # Validate InteractionResult format
+        if not validate_interaction_result(result):
+            print("[ERROR] Emergency Check: InteractionResult validation failed")
+            return jsonify({
+                'status': 'UNSAFE',
+                'response': 'Internal validation error. Please consult a healthcare professional.',
+                'error': 'Validation failed'
+            }), 500
+        
         # Map verdict to status
         status_map = {
             'SAFE TO ADD': 'SAFE',
@@ -1755,7 +2062,7 @@ def emergency_check():
         
         print(f"[DEBUG] Status: {status}, GNN Risk: {result.gnn_risk}%, Verdict: {result.verdict}")
         
-        return jsonify({
+        response_data = {
             'status': status,
             'response': result.llm_explanation,
             'gnn_risk': result.gnn_risk,
@@ -1763,7 +2070,18 @@ def emergency_check():
             'drug2': drug2,
             'interaction': result.rag_interactions[0] if result.rag_interactions else None,
             'timestamp': result.timestamp
-        })
+        }
+        
+        # Validate response format
+        if not validate_response_format(response_data, 'emergency_check'):
+            print("[ERROR] Emergency Check: Response format validation failed")
+            return jsonify({
+                'status': 'UNSAFE',
+                'response': 'Internal validation error. Please consult a healthcare professional.',
+                'error': 'Validation failed'
+            }), 500
+        
+        return jsonify(response_data)
         
     except Exception as e:
         print(f"[ERROR] Exception in emergency check: {e}")
@@ -2210,13 +2528,25 @@ def quick_check():
             patient_profile=None  # Anonymous user
         )
         
-        return jsonify({
+        # Validate InteractionResult format
+        if not validate_interaction_result(result):
+            print("[ERROR] Quick Check: InteractionResult validation failed")
+            return jsonify({'error': 'Internal validation error'}), 500
+        
+        response_data = {
             'gnn_risk': result.gnn_risk,
             'verdict': result.verdict,
             'ai_response': result.llm_explanation,
             'can_add': result.can_add,
             'dosage_validation': result.dosage_validation
-        })
+        }
+        
+        # Validate response format
+        if not validate_response_format(response_data, 'quick_check'):
+            print("[ERROR] Quick Check: Response format validation failed")
+            return jsonify({'error': 'Internal validation error'}), 500
+        
+        return jsonify(response_data)
     
     # Multiple drugs - use InteractionEngine
     # Treat first drug as "new drug" and rest as "existing drugs"
@@ -2229,15 +2559,27 @@ def quick_check():
         patient_profile=None  # Anonymous user
     )
     
+    # Validate InteractionResult format
+    if not validate_interaction_result(result):
+        print("[ERROR] Quick Check: InteractionResult validation failed")
+        return jsonify({'error': 'Internal validation error'}), 500
+    
     # Map InteractionResult to existing response format for backward compatibility
-    return jsonify({
+    response_data = {
         'gnn_risk': result.gnn_risk,
         'verdict': result.verdict,
         'ai_response': result.llm_explanation,
         'can_add': result.can_add,
         'interactions': result.rag_interactions,
         'dosage_validation': result.dosage_validation
-    })
+    }
+    
+    # Validate response format
+    if not validate_response_format(response_data, 'quick_check'):
+        print("[ERROR] Quick Check: Response format validation failed")
+        return jsonify({'error': 'Internal validation error'}), 500
+    
+    return jsonify(response_data)
 
 if __name__ == '__main__':
     app.run(debug=True, use_reloader=False)

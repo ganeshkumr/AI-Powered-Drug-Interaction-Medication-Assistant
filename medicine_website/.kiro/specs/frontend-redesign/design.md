@@ -4,6 +4,22 @@
 
 This document outlines the technical design for redesigning the Medicine Assistant frontend into a professional, accessible, and user-friendly healthcare application.
 
+### Feature Separation Architecture
+
+The application follows a clear separation between pre-login and post-login features:
+
+**Pre-Login (Landing Page)**:
+- Emergency Drug Check: Quick, anonymous interaction checking without account creation
+- Feature showcase and marketing content
+- Login/Register CTAs
+
+**Post-Login (Dashboard)**:
+- Add New Medication: Personalized medication addition with profile integration
+- Medication Wallet: Saved medications management
+- Profile-based interaction checking
+
+**Rationale**: Emergency Drug Check is designed for quick, anonymous use and would create functional duplication if shown after login. Live Health Monitoring (Google Fit) was a standalone demo feature not directly connected to core medication interaction, dosage validation, or medication storage workflows. The dashboard focuses exclusively on authenticated medication management features.
+
 ## Architecture
 
 ### Component Structure
@@ -35,7 +51,14 @@ src/
 │       └── Modal.jsx (new)
 ├── pages/
 │   ├── Landing.jsx (new)
+│   │   - Emergency Drug Check
+│   │   - Feature showcase
+│   │   - Login/Register CTAs
 │   ├── Dashboard.jsx (redesigned)
+│   │   - Add New Medication form
+│   │   - Medication Wallet
+│   │   - NO Emergency Check (pre-login only)
+│   │   - NO Live Health Monitoring (removed)
 │   ├── Profile.jsx (redesigned)
 │   └── History.jsx (new)
 └── styles/
