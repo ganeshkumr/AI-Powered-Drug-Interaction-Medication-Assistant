@@ -5,6 +5,7 @@ import { medicationAPI } from '../../services/api'
 import Card from '../common/Card'
 import Button from '../common/Button'
 import DrugSearch from '../medication/DrugSearch'
+import WarningModal from '../common/WarningModal'
 
 const MedicationForm = () => {
   const [drugName, setDrugName] = useState('')
@@ -15,6 +16,7 @@ const MedicationForm = () => {
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
   const [checkResult, setCheckResult] = useState(null)
+  const [showWarningModal, setShowWarningModal] = useState(false)
 
   const handleCheck = async () => {
     if (!drugName) {
@@ -33,6 +35,11 @@ const MedicationForm = () => {
         frequency
       })
       setCheckResult(response.data)
+      
+      // Show warning modal for unsafe medications (non-blocking)
+      if (response.data.verdict?.includes('UNSAFE') || (response.data.gnn_risk && response.data.gnn_risk > 70)) {
+        setShowWarningModal(true)
+      }
     } catch (error) {
       console.error('Check failed:', error)
       setCheckResult({
@@ -46,11 +53,12 @@ const MedicationForm = () => {
   }
 
   const handleAdd = async () => {
-    if (!checkResult || checkResult.status === 'UNSAFE') {
-      alert('Cannot add unsafe medication')
+    if (!checkResult) {
+      alert('Please check medication safety first')
       return
     }
 
+    // Allow user to add medication even if unsafe (non-blocking warning)
     try {
       await medicationAPI.addMedication({
         drug_name: drugName,
@@ -298,6 +306,30 @@ const MedicationForm = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Warning Modal for Unsafe Medications */}
+      <WarningModal
+        isOpen={showWarningModal}
+        onClose={() => setShowWarningModal(false)}
+        onProceed={() => {
+          // User acknowledges the warning and can continue
+          console.log('User acknowledged medication safety warning')
+        }}
+        riskData={{
+          overallRisk: checkResult?.gnn_risk,
+          overallVerdict: checkResult?.verdict,
+          results: checkResult ? [{
+            medication: drugName,
+            ai_response: checkResult.ai_response,
+            gnn_risk: checkResult.gnn_risk,
+            verdict: checkResult.verdict
+          }] : []
+        }}
+        medications={[drugName]}
+        title="Medication Safety Warning"
+        showProceedButton={true}
+        proceedButtonText="I Understand the Risks"
+      />
     </motion.div>
   )
 }

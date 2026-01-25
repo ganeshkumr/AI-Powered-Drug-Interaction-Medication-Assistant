@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertTriangle, Loader } from 'lucide-react'
 import { emergencyAPI } from '../../services/api'
+import WarningModal from '../common/WarningModal'
 
 const EmergencyCheck = () => {
   const [drug1, setDrug1] = useState('')
   const [drug2, setDrug2] = useState('')
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [showWarningModal, setShowWarningModal] = useState(false)
 
   const handleCheck = async () => {
     if (!drug1 || !drug2) {
@@ -21,6 +23,11 @@ const EmergencyCheck = () => {
     try {
       const response = await emergencyAPI.checkInteraction(drug1, drug2)
       setResult(response.data)
+      
+      // Show warning modal for unsafe combinations (non-blocking)
+      if (response.data.status === 'UNSAFE' || (response.data.gnn_risk && response.data.gnn_risk > 70)) {
+        setShowWarningModal(true)
+      }
     } catch (error) {
       console.error('Emergency check failed:', error)
       setResult({
@@ -166,6 +173,30 @@ const EmergencyCheck = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Warning Modal for Unsafe Drug Combinations */}
+      <WarningModal
+        isOpen={showWarningModal}
+        onClose={() => setShowWarningModal(false)}
+        onProceed={() => {
+          // User acknowledges the emergency warning
+          console.log('User acknowledged emergency drug interaction warning')
+        }}
+        riskData={{
+          overallRisk: result?.gnn_risk,
+          overallVerdict: result?.status,
+          results: result ? [{
+            medication: `${drug1} + ${drug2}`,
+            ai_response: result.response,
+            gnn_risk: result.gnn_risk,
+            verdict: result.status
+          }] : []
+        }}
+        medications={[drug1, drug2]}
+        title="Emergency Drug Interaction Warning"
+        showProceedButton={true}
+        proceedButtonText="I Understand the Emergency Risk"
+      />
     </motion.div>
   )
 }
