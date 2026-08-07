@@ -8,10 +8,9 @@ python-dotenv==1.1.1
 pandas==2.2.3
 requests==2.32.4
 
-# ML — CPU-only torch (smaller, faster install on Render)
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.6.0+cpu
-torch-geometric==2.6.1
+# ML — let pip find compatible torch version
+torch
+torch-geometric
 
 # Google auth (optional)
 google-auth-oauthlib==1.2.1
