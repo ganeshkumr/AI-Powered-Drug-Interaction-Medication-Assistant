@@ -7,9 +7,15 @@ import json
 from werkzeug.security import generate_password_hash, check_password_hash
 import re
 from datetime import date, datetime, timedelta
-import torch
-import torch.nn.functional as F
-from torch_geometric.nn import GATConv
+# PyTorch GNN imports (optional for lightweight deployments)
+try:
+    import torch
+    import torch.nn.functional as F
+    from torch_geometric.nn import GATConv
+    TORCH_AVAILABLE = True
+except Exception as e:
+    TORCH_AVAILABLE = False
+    print(f"[WARNING] PyTorch/TorchGeometric disabled or not installed: {e}")
 import os
 import random
 import time
@@ -63,22 +69,26 @@ def load_json_file(file_path, default=None):
     return default
 
 # --- GNN Model Definition and Loading ---
-class GNNLinkPredictor(torch.nn.Module):
-    def __init__(self, num_nodes, embedding_dim, hidden_channels, out_channels):
-        super(GNNLinkPredictor, self).__init__()
-        self.embedding = torch.nn.Embedding(num_nodes, embedding_dim)
-        self.conv1 = GATConv(embedding_dim, hidden_channels, heads=4, dropout=0.6)
-        self.conv2 = GATConv(hidden_channels * 4, out_channels, heads=1, concat=False, dropout=0.6)
+if TORCH_AVAILABLE:
+    class GNNLinkPredictor(torch.nn.Module):
+        def __init__(self, num_nodes, embedding_dim, hidden_channels, out_channels):
+            super(GNNLinkPredictor, self).__init__()
+            self.embedding = torch.nn.Embedding(num_nodes, embedding_dim)
+            self.conv1 = GATConv(embedding_dim, hidden_channels, heads=4, dropout=0.6)
+            self.conv2 = GATConv(hidden_channels * 4, out_channels, heads=1, concat=False, dropout=0.6)
 
-    def encode(self, x, edge_index):
-        x = self.embedding(x); x = F.dropout(x, p=0.6, training=self.training)
-        x = F.elu(self.conv1(x, edge_index)); x = F.dropout(x, p=0.6, training=self.training)
-        x = self.conv2(x, edge_index); return x
+        def encode(self, x, edge_index):
+            x = self.embedding(x); x = F.dropout(x, p=0.6, training=self.training)
+            x = F.elu(self.conv1(x, edge_index)); x = F.dropout(x, p=0.6, training=self.training)
+            x = self.conv2(x, edge_index); return x
 
-    def decode(self, z, edge_label_index):
-        src = z[edge_label_index[0]]; dst = z[edge_label_index[1]]; return (src * dst).sum(dim=-1)
+        def decode(self, z, edge_label_index):
+            src = z[edge_label_index[0]]; dst = z[edge_label_index[1]]; return (src * dst).sum(dim=-1)
 
 def load_gnn_model():
+    if not TORCH_AVAILABLE:
+        print("[INFO] Running in lightweight RAG mode (PyTorch disabled).")
+        return None, None
     try:
         drug_map = load_json_file('models/drug_map.json')
         model = GNNLinkPredictor(num_nodes=len(drug_map), embedding_dim=128, hidden_channels=128, out_channels=128)
@@ -86,9 +96,10 @@ def load_gnn_model():
         model.load_state_dict(torch.load('models/gnn_model.pt', map_location=map_location))
         model.eval(); print("[INFO] GNN Prediction Model loaded successfully on CPU.")
         return model, drug_map
-    except FileNotFoundError:
-        print("[ERROR] GNN model not found. Please run train_gnn.py first.")
+    except Exception as e:
+        print(f"[WARNING] GNN model could not be loaded: {e}")
         return None, None
+
 gnn_model, drug_map = load_gnn_model()
 
 # --- RAG System ---
