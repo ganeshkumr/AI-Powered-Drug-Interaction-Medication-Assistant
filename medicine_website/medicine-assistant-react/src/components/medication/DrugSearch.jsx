@@ -7,6 +7,7 @@ import {
   createAccessibleFormField,
   generateId 
 } from '../../utils/accessibility'
+import { BASE_URL } from '../../services/api'
 
 const DrugSearch = ({ 
   onSelect, 
@@ -62,7 +63,7 @@ const DrugSearch = ({
 
       setLoading(true)
       try {
-        const response = await fetch(`http://localhost:5000/api/search-drugs?q=${encodeURIComponent(query)}`)
+        const response = await fetch(`${BASE_URL}/api/search-drugs?q=${encodeURIComponent(query)}`)
         if (response.ok) {
           const data = await response.json()
           const drugs = data.drugs || []

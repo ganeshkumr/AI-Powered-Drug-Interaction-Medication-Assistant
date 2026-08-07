@@ -9,6 +9,7 @@ import ExplainPanel from '../components/risk/ExplainPanel'
 import Button from '../components/common/Button'
 import Card from '../components/common/Card'
 import MedicationChip from '../components/medication/MedicationChip'
+import { BASE_URL } from '../services/api'
 
 const Results = () => {
   const location = useLocation()
@@ -46,7 +47,7 @@ const Results = () => {
     try {
       // Save medications to wallet
       for (const drug of drugs) {
-        await fetch('http://localhost:5000/api/medications', {
+        await fetch(`${BASE_URL}/api/medications`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -144,14 +145,18 @@ const Results = () => {
                 {/* GNN Prediction Info */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-600">
-                    <strong>GNN Model Prediction:</strong> {result.gnn_risk}% interaction probability
+                    <span className="font-semibold">Model Confidence:</span>{' '}
+                    {Math.round((1 - Math.abs(result.gnn_risk - 0.5) * 2) * 100)}%
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Based on Graph Neural Network analysis of drug-drug interactions
                   </p>
                 </div>
               </div>
             </Card>
           </motion.div>
 
-          {/* Right Column - AI Explanation */}
+          {/* Right Column - Detailed Analysis */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -159,87 +164,38 @@ const Results = () => {
           >
             <Card shadow="soft-lg">
               <div className="p-8">
-                <h2 className="text-xl font-heading font-bold text-neutral-text mb-4">
-                  AI Analysis
+                <h2 className="text-xl font-heading font-bold text-neutral-text mb-6">
+                  Clinical Details
                 </h2>
-                <div className="prose prose-sm max-w-none">
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-                    {result.ai_response}
-                  </p>
-                </div>
-
-                {/* Dosage Warnings */}
-                {result.dosage_validation?.warnings?.length > 0 && (
-                  <div className="mt-6 bg-warning-50 border border-warning-200 rounded-lg p-4">
-                    <h4 className="text-sm font-semibold text-warning-800 mb-2">
-                      Dosage Warnings:
-                    </h4>
-                    <ul className="text-sm text-warning-700 space-y-1">
-                      {result.dosage_validation.warnings.map((warning, index) => (
-                        <li key={index}>• {warning}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                
+                <ExplainPanel explanation={result.explanation} />
               </div>
             </Card>
           </motion.div>
         </div>
 
-        {/* Detailed Explanation Panel */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mb-8"
-        >
-          <ExplainPanel
-            explanation={result.ai_response}
-            interactions={result.interactions}
-          />
-        </motion.div>
-
         {/* Action Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-4"
+          transition={{ delay: 0.4 }}
+          className="flex flex-col sm:flex-row justify-center gap-4"
         >
-          {result.can_add && (
-            <Button
-              variant="primary"
-              size="lg"
-              icon={<Save className="w-5 h-5" />}
-              onClick={handleSave}
-              loading={saving}
-              className="w-full sm:w-auto"
-            >
-              Save to Medication Wallet
-            </Button>
-          )}
+          <Button
+            variant="primary"
+            icon={<Save className="w-5 h-5" />}
+            onClick={handleSave}
+            loading={saving}
+          >
+            Save to My Medication Wallet
+          </Button>
+
           <Button
             variant="secondary"
-            size="lg"
-            icon={<X className="w-5 h-5" />}
             onClick={() => navigate('/')}
-            className="w-full sm:w-auto"
           >
-            Discard
+            Check Another Combination
           </Button>
-        </motion.div>
-
-        {/* Disclaimer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-8 text-center"
-        >
-          <p className="text-xs text-gray-500 max-w-2xl mx-auto">
-            This analysis is for informational purposes only and should not replace professional medical advice. 
-            Always consult your healthcare provider before making medication decisions.
-          </p>
         </motion.div>
       </div>
     </Layout>

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import Button from '../common/Button'
 import DrugSearch from '../medication/DrugSearch'
 import MedicationChip from '../medication/MedicationChip'
+import { BASE_URL } from '../../services/api'
 
 const QuickCheckModal = ({ onClose }) => {
   const navigate = useNavigate()
@@ -44,7 +45,7 @@ const QuickCheckModal = ({ onClose }) => {
 
     try {
       // For quick check without profile
-      const response = await fetch('http://localhost:5000/api/quick-check', {
+      const response = await fetch(`${BASE_URL}/api/quick-check`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

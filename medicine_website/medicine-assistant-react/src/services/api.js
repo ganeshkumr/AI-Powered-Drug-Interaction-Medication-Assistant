@@ -1,8 +1,8 @@
 import axios from 'axios'
 
-// In development, VITE_API_URL is not set so it falls back to localhost.
 // In production (Vercel), VITE_API_URL points to the Render backend.
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+// Falls back to the deployed Render backend URL so production builds always connect.
+export const BASE_URL = import.meta.env.VITE_API_URL || 'https://ai-powered-drug-interaction-medication.onrender.com'
 
 const api = axios.create({
   baseURL: BASE_URL,
