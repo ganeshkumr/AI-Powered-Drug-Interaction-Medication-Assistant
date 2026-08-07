@@ -1,0 +1,112 @@
+{
+  "pitavastatin": {
+    "max_daily_mg": 4.0,
+    "max_single_mg": 1.3333333333333333,
+    "unit": "mg",
+    "warnings": [
+      "As dosages of pitavastatin greater than 4mg per day were associated with an increased risk of severe"
+    ]
+  },
+  "pitavastatia": {
+    "max_daily_mg": 4.0,
+    "max_single_mg": 1.3333333333333333,
+    "unit": "mg",
+    "warnings": [
+      "As dosages of pitavastatin greater than 4mg per day were associated with an increased risk of severe"
+    ]
+  },
+  "pitavastatina": {
+    "max_daily_mg": 4.0,
+    "max_single_mg": 1.3333333333333333,
+    "unit": "mg",
+    "warnings": [
+      "As dosages of pitavastatin greater than 4mg per day were associated with an increased risk of severe"
+    ]
+  },
+  "pitavastatine": {
+    "max_daily_mg": 4.0,
+    "max_single_mg": 1.3333333333333333,
+    "unit": "mg",
+    "warnings": [
+      "As dosages of pitavastatin greater than 4mg per day were associated with an increased risk of severe"
+    ]
+  },
+  "pitavastatinum": {
+    "max_daily_mg": 4.0,
+    "max_single_mg": 1.3333333333333333,
+    "unit": "mg",
+    "warnings": [
+      "As dosages of pitavastatin greater than 4mg per day were associated with an increased risk of severe"
+    ]
+  },
+  "oliceridine": {
+    "max_daily_mg": 27.0,
+    "max_single_mg": 9.0,
+    "unit": "mg",
+    "warnings": []
+  },
+  "hmop": {
+    "max_daily_mg": 27.0,
+    "max_single_mg": 9.0,
+    "unit": "mg",
+    "warnings": []
+  },
+  "m-or-1": {
+    "max_daily_mg": 27.0,
+    "max_single_mg": 9.0,
+    "unit": "mg",
+    "warnings": []
+  },
+  "mop": {
+    "max_daily_mg": 27.0,
+    "max_single_mg": 9.0,
+    "unit": "mg",
+    "warnings": []
+  },
+  "mor-1": {
+    "max_daily_mg": 27.0,
+    "max_single_mg": 9.0,
+    "unit": "mg",
+    "warnings": []
+  },
+  "atogepant": {
+    "max_daily_mg": 10.0,
+    "max_single_mg": 3.3333333333333335,
+    "unit": "mg",
+    "warnings": [
+      "Similarly, no dose adjustments are required for patients with mild or moderate renal impairment, but"
+    ]
+  },
+  "calcitonin receptor-like receptor": {
+    "max_daily_mg": 10.0,
+    "max_single_mg": 3.3333333333333335,
+    "unit": "mg",
+    "warnings": [
+      "Similarly, no dose adjustments are required for patients with mild or moderate renal impairment, but"
+    ]
+  },
+  "cgrp type 1 receptor": {
+    "max_daily_mg": 10.0,
+    "max_single_mg": 3.3333333333333335,
+    "unit": "mg",
+    "warnings": [
+      "Similarly, no dose adjustments are required for patients with mild or moderate renal impairment, but"
+    ]
+  },
+  "cgrpr": {
+    "max_daily_mg": 10.0,
+    "max_single_mg": 3.3333333333333335,
+    "unit": "mg",
+    "warnings": [
+      "Similarly, no dose adjustments are required for patients with mild or moderate renal impairment, but"
+    ]
+  },
+  "crlr": {
+    "max_daily_mg": 10.0,
+    "max_single_mg": 3.3333333333333335,
+    "unit": "mg",
+    "warnings": [
+      "Similarly, no dose adjustments are required for patients with mild or moderate renal impairment, but"
+    ]
+  }
+}

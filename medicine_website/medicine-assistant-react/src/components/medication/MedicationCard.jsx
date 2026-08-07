@@ -92,6 +92,10 @@ const MedicationCard = ({
     return time.charAt(0).toUpperCase() + time.slice(1)
   }
 
+  const normalizeText = (value) => (value || '').toString().replace(/\s+/g, ' ').trim()
+  const normalizedDosage = normalizeText(dosage)
+  const normalizedFrequency = normalizeText(frequency)
+
   // Format next intake time for display
   const formatNextIntakeTime = (time) => {
     if (!time) return ''
@@ -212,17 +216,17 @@ const MedicationCard = ({
                 </div>
               </div>
               
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {dosage && (
-                  <div className="flex items-center text-sm text-neutral-600">
-                    <span className="font-medium text-neutral-700 mr-2">Dosage:</span>
-                    <span>{dosage}</span>
+              <div className="mt-3 space-y-2">
+                {normalizedDosage && (
+                  <div className="text-sm text-neutral-600 leading-6 break-words">
+                    <span className="font-medium text-neutral-700 mr-1">Dosage:</span>
+                    <span>{normalizedDosage}</span>
                   </div>
                 )}
-                {frequency && (
-                  <div className="flex items-center text-sm text-neutral-600">
-                    <Clock className="w-4 h-4 mr-2 text-neutral-500" aria-hidden="true" />
-                    <span>{frequency}</span>
+                {normalizedFrequency && (
+                  <div className="flex items-start text-sm text-neutral-600 leading-6">
+                    <Clock className="w-4 h-4 mr-2 mt-1 text-neutral-500 flex-shrink-0" aria-hidden="true" />
+                    <span className="break-words">{normalizedFrequency}</span>
                   </div>
                 )}
                 {timeOfDay && (

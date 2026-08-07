@@ -17,6 +17,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.21",
+    "baseline-browser-mapping": "^2.9.19",
     "fast-check": "^4.5.3",
     "jsdom": "^27.4.0",
     "postcss": "^8.4.49",

@@ -72,7 +72,7 @@ const Modal = ({
           
           {/* Modal */}
           <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto"
             role="dialog"
             aria-modal="true"
             aria-labelledby={ariaLabelledby || titleId}
@@ -83,7 +83,7 @@ const Modal = ({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className={`bg-white dark:bg-slate-800 rounded-card-lg shadow-soft-lg w-full ${sizes[size]} max-h-[90vh] overflow-hidden flex flex-col`}
+              className={`bg-white dark:bg-slate-800 rounded-card-lg shadow-soft-lg w-full ${sizes[size]} max-h-[90vh] overflow-hidden flex flex-col my-6`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}

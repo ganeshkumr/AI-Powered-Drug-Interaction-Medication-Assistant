@@ -325,12 +325,14 @@ export const createAccessibleModal = (modalElement, options = {}) => {
 
   let previousActiveElement = null;
   let focusTrapCleanup = null;
+  let previousBodyOverflow = '';
 
   const open = () => {
     // Store the previously focused element
     previousActiveElement = document.activeElement;
     
     // Prevent body scroll
+    previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     
     // Set up focus trap
@@ -358,7 +360,7 @@ export const createAccessibleModal = (modalElement, options = {}) => {
 
   const close = () => {
     // Restore body scroll
-    document.body.style.overflow = '';
+    document.body.style.overflow = previousBodyOverflow;
     
     // Clean up focus trap
     if (focusTrapCleanup) {
@@ -406,8 +408,10 @@ export const createAccessibleModal = (modalElement, options = {}) => {
     cleanup: () => {
       modalElement.removeEventListener('keydown', handleKeyDown);
       modalElement.removeEventListener('click', handleBackdropClick);
+      document.body.style.overflow = previousBodyOverflow;
       if (focusTrapCleanup) {
         focusTrapCleanup();
+        focusTrapCleanup = null;
       }
     },
   };

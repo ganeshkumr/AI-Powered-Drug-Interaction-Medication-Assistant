@@ -3,7 +3,6 @@ import GlobalNavigation from '../navigation/GlobalNavigation'
 import Footer from './Footer'
 import SkipToMain from '../common/SkipToMain'
 import ChatbotButton from '../chatbot/ChatbotButton'
-import AccessibilityValidator from '../common/AccessibilityValidator'
 import { useAuth } from '../../context/AuthContext'
 
 const Layout = ({ children }) => {
@@ -48,9 +47,6 @@ const Layout = ({ children }) => {
       
       {/* Chatbot Integration */}
       <ChatbotButton />
-      
-      {/* Accessibility Validator (Development Only) */}
-      <AccessibilityValidator />
     </div>
   )
 }

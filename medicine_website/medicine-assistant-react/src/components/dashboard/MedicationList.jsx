@@ -34,9 +34,11 @@ const MedicationList = () => {
     if (!confirm('Are you sure you want to remove this medication?')) return
 
     try {
-      setMedications(medications.filter(med => med.id !== id))
+      await medicationAPI.deleteMedication(id)
+      setMedications(prev => prev.filter(med => med.id !== id))
     } catch (error) {
       console.error('Failed to delete medication:', error)
+      alert('Failed to delete medication. Please try again.')
     }
   }
 

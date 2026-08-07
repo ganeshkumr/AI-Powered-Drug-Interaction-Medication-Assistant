@@ -1,15 +1,34 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { User, Save, Loader, ChevronDown, ChevronUp, X, Plus, Activity, CheckCircle } from 'lucide-react'
+import { User, Save, Loader, ChevronDown, ChevronUp, X, Plus } from 'lucide-react'
 import api from '../services/api'
 import Button from '../components/common/Button'
+
+const MEDICAL_CONDITION_OPTIONS = [
+  'Diabetes',
+  'Hypertension',
+  'Asthma',
+  'Heart Disease',
+  'Kidney Disease',
+  'Liver Disease',
+  'Thyroid Disorder',
+  'Arthritis',
+  'Depression',
+  'Anxiety',
+  'Migraine',
+  'Epilepsy',
+  'COPD',
+  'GERD',
+  'Anemia',
+  'High Cholesterol',
+  'PCOS'
+]
 
 const Profile = () => {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [googleFitConnected, setGoogleFitConnected] = useState(false)
   const [conditionInput, setConditionInput] = useState('')
   const [conditionsList, setConditionsList] = useState([])
   const [profile, setProfile] = useState({
@@ -35,8 +54,8 @@ const Profile = () => {
   const fetchProfile = async () => {
     try {
       const response = await api.get('/api/profile')
-      const profileData = response.data.profile
-      setProfile(profileData)
+      const profileData = response?.data?.profile || {}
+      setProfile(prev => ({ ...prev, ...profileData }))
       
       // Parse conditions into chips
       if (profileData.conditions) {
@@ -66,11 +85,6 @@ const Profile = () => {
     setProfile({ ...profile, conditions: newList.join(', ') })
   }
 
-  const handleGoogleFitToggle = () => {
-    setGoogleFitConnected(!googleFitConnected)
-    // In real implementation, this would trigger OAuth flow
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -78,7 +92,7 @@ const Profile = () => {
     try {
       await api.post('/api/profile', profile)
       alert('Profile updated successfully!')
-      navigate('/dashboard')
+      navigate('/my-med')
     } catch (error) {
       console.error('Failed to update profile:', error)
       alert('Failed to update profile')
@@ -198,13 +212,24 @@ const Profile = () => {
                   <label className="block text-sm font-medium text-neutral-text mb-2">
                     Medical Conditions
                   </label>
-                  <div className="flex space-x-2 mb-3">
+                  <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                    <select
+                      value={conditionInput}
+                      onChange={(e) => setConditionInput(e.target.value)}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
+                    >
+                      <option value="">Select medical condition</option>
+                      {MEDICAL_CONDITION_OPTIONS.map((condition) => (
+                        <option key={condition} value={condition}>
+                          {condition}
+                        </option>
+                      ))}
+                    </select>
                     <input
                       type="text"
                       value={conditionInput}
                       onChange={(e) => setConditionInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCondition())}
-                      placeholder="e.g., Diabetes, Hypertension"
+                      placeholder="Or type custom condition"
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all"
                     />
                     <Button
@@ -318,50 +343,6 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Google Fit Integration */}
-            <div className="border-b border-slate-200 dark:border-slate-700 pb-6">
-              <h2 className="text-xl font-semibold mb-4 text-neutral-text flex items-center space-x-2">
-                <Activity className="w-5 h-5 text-primary" />
-                <span>Google Fit Integration</span>
-              </h2>
-              <div className="bg-gradient-to-br from-primary-50 to-accent-50 rounded-lg p-4 border border-primary-100">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-neutral-text mb-1">
-                      Connect Google Fit
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Sync your health data for more accurate recommendations
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleGoogleFitToggle}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      googleFitConnected ? 'bg-primary' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        googleFitConnected ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-                
-                {googleFitConnected && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="flex items-center space-x-2 text-sm text-success"
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Connected • Last synced: Just now</span>
-                  </motion.div>
-                )}
-              </div>
-            </div>
-
             {/* Lifestyle */}
             <div className="pb-6">
               <h2 className="text-xl font-semibold mb-4 text-neutral-text">Lifestyle</h2>
@@ -437,3 +418,4 @@ const Profile = () => {
 }
 
 export default Profile
+

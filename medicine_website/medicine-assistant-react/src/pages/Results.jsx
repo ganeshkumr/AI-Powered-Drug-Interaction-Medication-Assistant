@@ -60,7 +60,7 @@ const Results = () => {
           })
         })
       }
-      navigate('/dashboard')
+      navigate('/my-med')
     } catch (error) {
       console.error('Save error:', error)
     } finally {

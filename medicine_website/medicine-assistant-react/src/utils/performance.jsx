@@ -179,7 +179,7 @@ export const bundleUtils = {
   // Dynamically import modules only when needed
   dynamicImport: async (modulePath) => {
     try {
-      const module = await import(modulePath);
+      const module = await import(/* @vite-ignore */ modulePath);
       return module.default || module;
     } catch (error) {
       console.error('Dynamic import failed:', error);

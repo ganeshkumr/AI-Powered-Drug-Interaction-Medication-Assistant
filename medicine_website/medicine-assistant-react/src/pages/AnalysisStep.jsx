@@ -152,10 +152,10 @@ const AnalysisStep = () => {
       sessionStorage.removeItem('selectedMedications')
       sessionStorage.removeItem('dosageData')
       
-      announceToScreenReader('Medications saved successfully. Redirecting to dashboard.')
+      announceToScreenReader('Medications saved successfully. Redirecting to My Medications.')
       
-      // Navigate to dashboard
-      navigate('/dashboard')
+      // Navigate to My Medications
+      navigate('/my-med')
     } catch (error) {
       console.error('Failed to save medications:', error)
       announceToScreenReader('Failed to save medications. Please try again.')
@@ -312,7 +312,9 @@ const AnalysisStep = () => {
                               <div 
                                 className="text-neutral-700 leading-relaxed prose prose-sm max-w-none"
                                 dangerouslySetInnerHTML={{ 
-                                  __html: result.ai_response?.replace(/\n/g, '<br>') 
+                                  __html: result.ai_response
+                                    ?.replace(/\*\*/g, '')
+                                    ?.replace(/\n/g, '<br>')
                                 }}
                               />
                             </motion.div>
@@ -412,7 +414,8 @@ const AnalysisStep = () => {
                     announceToScreenReader('Opening AI assistant for follow-up questions')
                     console.log('Opening chatbot for follow-up questions')
                   }}
-                  className="px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 min-h-[44px] bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50 shadow-sm hover:shadow-md"
+                  variant="primary"
+                  className="px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 min-h-[44px] shadow-sm hover:shadow-md"
                 >
                   <MessageCircle className="w-5 h-5" />
                   <span>Ask AI Assistant</span>
@@ -431,7 +434,8 @@ const AnalysisStep = () => {
           >
             <Button
               onClick={handleBack}
-              className="w-full sm:w-auto px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 min-h-[44px] bg-white border border-neutral-300 text-neutral-700 hover:bg-neutral-50"
+              variant="secondary"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 min-h-[44px]"
             >
               <ArrowLeft className="w-5 h-5" />
               <span>Back: Dosage</span>
@@ -442,7 +446,8 @@ const AnalysisStep = () => {
                 announceToScreenReader('Starting new medication safety check')
                 navigate('/check/medication')
               }}
-              className="w-full sm:w-auto px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 min-h-[44px] bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+              variant="primary"
+              className="w-full sm:w-auto px-6 py-3 rounded-lg font-medium flex items-center justify-center space-x-2 min-h-[44px]"
             >
               <span>Start New Check</span>
             </Button>

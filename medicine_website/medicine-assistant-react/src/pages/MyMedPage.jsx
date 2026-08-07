@@ -46,10 +46,11 @@ const MyMedPage = () => {
     if (!confirm('Are you sure you want to remove this medication?')) return
 
     try {
-      setMedications(medications.filter(med => med.id !== id))
-      // In a real implementation, this would call the API to delete
+      await medicationAPI.deleteMedication(id)
+      setMedications(prev => prev.filter(med => med.id !== id))
     } catch (error) {
       console.error('Failed to delete medication:', error)
+      alert('Failed to delete medication. Please try again.')
     }
   }
 
@@ -57,6 +58,42 @@ const MyMedPage = () => {
     // In a real implementation, this would open an edit modal
     alert('Edit functionality coming soon!')
   }
+
+  const cleanText = (value) => {
+    if (value === null || value === undefined) return ''
+    return String(value)
+      .replace(/[^\x20-\x7E]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
+  const formatDosage = (med) => {
+    const rawAmount = med?.dosage_amount
+    const rawUnit = cleanText(med?.dosage_unit)
+    const hasAmount = rawAmount !== null && rawAmount !== undefined && rawAmount !== ''
+    const hasUnit = Boolean(rawUnit)
+
+    if (!hasAmount && !hasUnit) return ''
+
+    let amountText = ''
+    if (hasAmount) {
+      const numericAmount = Number(rawAmount)
+      amountText = Number.isFinite(numericAmount)
+        ? Number.isInteger(numericAmount)
+          ? `${numericAmount}`
+          : `${numericAmount}`
+        : cleanText(rawAmount)
+    }
+
+    return [amountText, rawUnit].filter(Boolean).join(' ')
+  }
+
+  const toMedicationCardData = (med, fallbackTimeOfDay = 'unspecified') => ({
+    name: cleanText(med?.drug_name),
+    dosage: formatDosage(med),
+    frequency: cleanText(med?.frequency),
+    timeOfDay: cleanText(med?.time_of_day) || fallbackTimeOfDay
+  })
 
   // Calculate medication risk statistics
   const calculateRiskStats = (medications) => {
@@ -242,12 +279,7 @@ const MyMedPage = () => {
                       transition={{ delay: medIndex * 0.05 }}
                     >
                       <MedicationCard
-                        medication={{
-                          name: med.drug_name,
-                          dosage: `${med.dosage_amount} ${med.dosage_unit}`,
-                          frequency: med.frequency,
-                          timeOfDay: timeSlot.label.toLowerCase()
-                        }}
+                        medication={toMedicationCardData(med, timeSlot.label.toLowerCase())}
                         variant="dashboard"
                         onEdit={() => handleEdit(med.id)}
                         onRemove={() => handleDelete(med.id)}
@@ -560,12 +592,7 @@ const MyMedPage = () => {
                                   transition={{ delay: index * 0.05 }}
                                 >
                                   <MedicationCard
-                                    medication={{
-                                      name: med.drug_name,
-                                      dosage: `${med.dosage_amount} ${med.dosage_unit}`,
-                                      frequency: med.frequency,
-                                      timeOfDay: group.key
-                                    }}
+                                    medication={toMedicationCardData(med, group.key)}
                                     variant="dashboard"
                                     onEdit={() => handleEdit(med.id)}
                                     onRemove={() => handleDelete(med.id)}
@@ -616,12 +643,7 @@ const MyMedPage = () => {
                                 transition={{ delay: index * 0.05 }}
                               >
                                 <MedicationCard
-                                  medication={{
-                                    name: med.drug_name,
-                                    dosage: `${med.dosage_amount} ${med.dosage_unit}`,
-                                    frequency: med.frequency,
-                                    timeOfDay: 'unspecified'
-                                  }}
+                                  medication={toMedicationCardData(med, 'unspecified')}
                                   variant="dashboard"
                                   onEdit={() => handleEdit(med.id)}
                                   onRemove={() => handleDelete(med.id)}

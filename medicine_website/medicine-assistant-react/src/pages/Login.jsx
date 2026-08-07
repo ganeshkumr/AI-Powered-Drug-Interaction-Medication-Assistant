@@ -20,7 +20,7 @@ const Login = () => {
     try {
       const result = await login(email, password)
       if (result.success) {
-        navigate('/dashboard')
+        navigate('/my-med')
       } else {
         setError(result.error || 'Invalid email or password')
       }

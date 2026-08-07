@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: medicine-assistant-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: OPENROUTER_API_KEY
+        sync: false          # Set manually in Render dashboard
+      - key: SECRET_KEY
+        sync: false          # Set manually in Render dashboard
+      - key: FRONTEND_URL
+        sync: false          # Set to your Vercel URL after deploying frontend
+      - key: FLASK_ENV
+        value: production
