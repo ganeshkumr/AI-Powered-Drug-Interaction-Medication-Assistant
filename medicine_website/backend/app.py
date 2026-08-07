@@ -38,16 +38,17 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'the_final_and_most_secure_key')
 
-# Allow requests from localhost (dev) and the deployed Vercel frontend (prod)
-_allowed_origins = [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-]
-_frontend_url = os.environ.get('FRONTEND_URL', '')
-if _frontend_url:
-    _allowed_origins.append(_frontend_url)
+# Cross-site cookie configuration for frontend (Vercel) <-> backend (Render)
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
 
-CORS(app, supports_credentials=True, origins=_allowed_origins)
+# Allow CORS for localhost and any *.vercel.app deployment automatically
+CORS(app, supports_credentials=True, origins=[
+    r"http://localhost:\d+",
+    r"http://127\.0\.0\.1:\d+",
+    r"https://.*\.vercel\.app",
+    r"https://.*\.onrender\.com"
+])
 
 def load_json_file(file_path, default=None):
     """Load JSON reliably across Windows code pages."""
