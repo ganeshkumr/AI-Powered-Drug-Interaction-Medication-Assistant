@@ -38,6 +38,57 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'the_final_and_most_secure_key')
 
+# The SQLite database is intentionally not stored in Git.  Render starts each
+# new instance with a fresh filesystem, so create the schema when the app
+# starts instead of relying on the local-only database_setup.py script.
+DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'medicine_log.db')
+
+
+def initialize_database():
+    """Create the application tables if this deployment has a fresh database."""
+    conn = sqlite3.connect(DATABASE_PATH)
+    try:
+        conn.execute('PRAGMA foreign_keys = ON')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS patients (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                name TEXT,
+                dob TEXT,
+                gender TEXT,
+                weight_kg REAL,
+                height_cm REAL,
+                emergency_contact TEXT,
+                conditions TEXT,
+                drug_allergies TEXT,
+                food_allergies TEXT,
+                other_allergies TEXT,
+                is_smoker TEXT,
+                alcohol_consumption TEXT
+            )
+        ''')
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS medications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                patient_id INTEGER NOT NULL,
+                drug_name TEXT NOT NULL,
+                dosage_amount REAL,
+                dosage_unit TEXT,
+                frequency TEXT,
+                start_date TEXT,
+                end_date TEXT,
+                FOREIGN KEY (patient_id) REFERENCES patients (id)
+            )
+        ''')
+        conn.commit()
+        print(f"[INFO] Database schema ready at {DATABASE_PATH}")
+    finally:
+        conn.close()
+
+
+initialize_database()
+
 # Cross-site cookie configuration for frontend (Vercel) <-> backend (Render)
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_SECURE'] = True
@@ -1601,7 +1652,10 @@ def build_rule_based_safety_layer(
 
 # --- Helper, Validation & AI Functions ---
 def get_db_connection():
-    conn = sqlite3.connect('medicine_log.db'); conn.row_factory = sqlite3.Row; return conn
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute('PRAGMA foreign_keys = ON')
+    return conn
 def calculate_age(dob_str):
     if not dob_str: return 0
     try:
