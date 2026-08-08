@@ -202,7 +202,7 @@ const MedicationStep = () => {
               className={`w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3 rounded-lg font-medium flex items-center justify-center space-x-2 transition-all duration-300 min-h-[44px] ${
                 canProceed
                   ? 'bg-primary-500 hover:bg-primary-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
-                  : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+                  : '!bg-neutral-200 !border-neutral-200 !text-neutral-500 cursor-not-allowed'
               }`}
               aria-label={canProceed ? 'Proceed to dosage information step' : 'Add at least one medication to proceed'}
               aria-describedby={!canProceed ? 'next-button-help' : undefined}

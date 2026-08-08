@@ -20,6 +20,7 @@ const DrugSearch = ({
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState([])
   const [loading, setLoading] = useState(false)
+  const [searchError, setSearchError] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const [announceCount, setAnnounceCount] = useState(0)
@@ -56,33 +57,39 @@ const DrugSearch = ({
     const searchDrugs = async () => {
       if (query.length < 2) {
         setSuggestions([])
+        setSearchError('')
         setShowDropdown(false)
         setSelectedIndex(-1)
         return
       }
 
       setLoading(true)
+      setSearchError('')
       try {
         const response = await fetch(`${BASE_URL}/api/search-drugs?q=${encodeURIComponent(query)}`)
-        if (response.ok) {
-          const data = await response.json()
-          const drugs = data.drugs || []
-          setSuggestions(drugs)
-          setShowDropdown(true)
-          setSelectedIndex(-1)
-          
-          // Announce search results to screen readers
-          const count = drugs.length
-          setAnnounceCount(count)
-          if (count === 0) {
-            announceToScreenReader('No medications found', 'polite')
-          } else {
-            announceToScreenReader(`${count} medication${count === 1 ? '' : 's'} found`, 'polite')
-          }
+        if (!response.ok) {
+          throw new Error(`Search request failed (${response.status})`)
+        }
+
+        const data = await response.json()
+        const drugs = data.drugs || []
+        setSuggestions(drugs)
+        setShowDropdown(true)
+        setSelectedIndex(-1)
+        
+        // Announce search results to screen readers
+        const count = drugs.length
+        setAnnounceCount(count)
+        if (count === 0) {
+          announceToScreenReader('No medications found', 'polite')
+        } else {
+          announceToScreenReader(`${count} medication${count === 1 ? '' : 's'} found`, 'polite')
         }
       } catch (error) {
         console.error('Drug search error:', error)
         setSuggestions([])
+        setShowDropdown(false)
+        setSearchError('Medication search is unavailable. Please wait a moment and try again.')
         announceToScreenReader('Search failed. Please try again.', 'assertive')
       } finally {
         setLoading(false)
@@ -260,6 +267,18 @@ const DrugSearch = ({
         >
           No medications found. Try a different search term.
         </div>
+      )}
+
+      {searchError && !loading && (
+        <p className="mt-2 text-sm text-danger-600" role="alert">
+          {searchError}
+        </p>
+      )}
+
+      {loading && (
+        <p className="mt-2 text-sm text-neutral-500" role="status">
+          Searching medications… The first search may take up to a minute while the server starts.
+        </p>
       )}
     </div>
   )
